@@ -1,0 +1,414 @@
+/* =========================================================
+   history.module.css — History Page styles
+   Extracted from ui/history.css
+   ========================================================= */
+
+/* ---------- App Shell ---------- */
+.appShell {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+}
+
+/* ---------- Background Effects ---------- */
+.backgroundEffects {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(140px);
+  opacity: 0.35;
+  animation: float 20s infinite alternate ease-in-out;
+}
+
+.glow1 {
+  top: -20%;
+  right: -10%;
+  width: 60vw;
+  height: 60vw;
+  background: radial-gradient(circle, var(--intel-blue), transparent 70%);
+}
+
+.glow2 {
+  bottom: -30%;
+  left: -20%;
+  width: 70vw;
+  height: 70vw;
+  background: radial-gradient(circle, var(--intel-dark-blue), transparent 60%);
+  animation-delay: -5s;
+}
+
+.glow3 {
+  top: 50%;
+  right: 20%;
+  width: 40vw;
+  height: 40vw;
+  background: radial-gradient(circle, var(--intel-cyan), transparent 70%);
+  opacity: 0.2;
+  animation-delay: -10s;
+}
+
+@keyframes float {
+  0%   { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(-30px, 30px) scale(1.05); }
+}
+
+/* ---------- History Page Layout ---------- */
+.historyPage {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  min-height: 100vh;
+  margin-left: var(--sidebar-width, 260px);
+  flex: 1;
+  position: relative;
+  z-index: 1;
+}
+
+/* ---------- History Sidebar (list panel) ---------- */
+.historySidebar {
+  display: flex;
+  flex-direction: column;
+  padding: 20px 16px;
+  gap: 12px;
+  border-right: 1px solid var(--glass-border);
+  overflow: hidden;
+}
+
+.sidebarTop {
+  min-height: 8px;
+}
+
+.sidebarListCard {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.listHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.loadingChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(56, 189, 248, 0.10);
+  border: 1px solid rgba(56, 189, 248, 0.22);
+  color: #d8f2ff;
+  font-size: 12px;
+}
+
+.emptyState {
+  border: 1px dashed var(--glass-border);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-secondary);
+  text-align: center;
+  padding: 26px 18px;
+  font-size: 13px;
+}
+
+.historyList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  min-height: 0;
+  flex: 1;
+}
+
+.historyItem {
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 18px;
+  padding: 14px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: 0.15s ease;
+  font-family: inherit;
+}
+
+.historyItem:hover {
+  background: rgba(56, 189, 248, 0.06);
+  border-color: rgba(56, 189, 248, 0.30);
+}
+
+.historyItem.active {
+  background: rgba(56, 189, 248, 0.12);
+  border-color: rgba(56, 189, 248, 0.42);
+}
+
+.historyItemTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.historyItemModule {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.historyItemDate {
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.historyItemMeta {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.historyItemSummary {
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+/* ---------- History Main (detail panel) ---------- */
+.historyMain {
+  padding: 24px;
+  overflow-y: auto;
+}
+
+.detailEmptyState {
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.historyDetail {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  overflow: auto;
+}
+
+.historyDetailCard {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.historyDetailHeader {
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.10), rgba(255, 255, 255, 0.03));
+  border: 1px solid rgba(56, 189, 248, 0.16);
+  padding: 18px;
+}
+
+.historyDetailTitle {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.historyDetailMeta {
+  margin-top: 8px;
+  display: flex;
+  gap: 10px 16px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.historySection {
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 20px;
+  padding: 18px;
+}
+
+.historySectionTitle {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 14px;
+}
+
+.historySectionEmpty {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.historyKv {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.historyKv > div {
+  border: 1px solid var(--glass-border);
+  background: rgba(2, 6, 23, 0.34);
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.historyKv span {
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+.historyKv strong {
+  font-size: 14px;
+  word-break: break-all;
+  color: var(--text-primary);
+}
+
+.artifactGroup {
+  border: 1px solid var(--glass-border);
+  background: rgba(2, 6, 23, 0.28);
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.artifactGroup + .artifactGroup {
+  margin-top: 12px;
+}
+
+.artifactGroupTitle {
+  font-weight: 800;
+  margin-bottom: 10px;
+  color: var(--text-primary);
+}
+
+.artifactLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.historyLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 12px;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.24);
+  color: #dff6ff;
+  font-size: 13px;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.historyLink:hover {
+  background: rgba(56, 189, 248, 0.22);
+  border-color: rgba(56, 189, 248, 0.40);
+}
+
+.historyTwoCol {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.historyCol {
+  border: 1px solid var(--glass-border);
+  background: rgba(2, 6, 23, 0.24);
+  border-radius: 16px;
+  padding: 14px;
+}
+
+.historySubtitle {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+}
+
+.analysisTable {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.analysisRow {
+  display: grid;
+  grid-template-columns: minmax(120px, 160px) minmax(80px, 120px) 90px 1fr;
+  gap: 10px;
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.025);
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.analysisKey {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.analysisValue,
+.analysisGrade,
+.analysisSummary {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.historyJson {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  border-radius: 16px;
+  border: 1px solid var(--glass-border);
+  background: rgba(2, 6, 23, 0.5);
+  color: #d6e3f0;
+  padding: 14px;
+  font-size: 12px;
+  line-height: 1.55;
+  overflow: auto;
+  font-family: 'Share Tech Mono', monospace;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 1200px) {
+  .historyPage {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .historyPage {
+    grid-template-columns: 1fr;
+    margin-left: 0;
+  }
+
+  .historyTwoCol,
+  .historyKv {
+    grid-template-columns: 1fr;
+  }
+
+  .analysisRow {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,137 @@
+﻿.page {
+  min-height: 100vh;
+  padding: 24px;
+  background: radial-gradient(circle at top right, #16243d, #0a101f 48%, #05070d 100%);
+  color: #e2e8f0;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 1.8rem;
+}
+
+.header p {
+  margin: 8px 0 0;
+  color: #94a3b8;
+}
+
+.layout {
+  margin-top: 20px;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+}
+
+.leftColumn,
+.rightColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.cameraWrap {
+  position: relative;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: #030712;
+  aspect-ratio: 16 / 9;
+}
+
+.video,
+.overlay {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.cameraStatus {
+  position: absolute;
+  inset: auto 12px 12px 12px;
+  background: rgba(15, 23, 42, 0.84);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 0.85rem;
+}
+
+.measureButton {
+  padding: 12px 16px;
+  border: none;
+  border-radius: 10px;
+  color: #052e2b;
+  background: linear-gradient(90deg, #34d399, #2dd4bf);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.measureButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.resultGrid {
+  display: grid;
+  gap: 12px;
+}
+
+.card,
+.emptyCard {
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  background: rgba(15, 23, 42, 0.85);
+  padding: 14px;
+}
+
+.card h3 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+}
+
+.card p,
+.card li {
+  color: #cbd5e1;
+  line-height: 1.45;
+}
+
+.card ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.loadingOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.62);
+  display: grid;
+  place-items: center;
+  z-index: 100;
+}
+
+.loadingCard {
+  padding: 14px 18px;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  background: rgba(15, 23, 42, 0.95);
+  font-weight: 700;
+}
+
+.error {
+  border-radius: 10px;
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  background: rgba(127, 29, 29, 0.4);
+  color: #fecaca;
+  padding: 10px 12px;
+}
+
+@media (max-width: 960px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}

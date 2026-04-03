@@ -1,0 +1,1058 @@
+/* =========================================================
+   health-check.module.css — Health Check Page styles
+   Mirrors ui/health-check.css + inline <style> from health-check.html
+   ========================================================= */
+
+/* ---------- App Shell ---------- */
+.appShell {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  background: var(--bg-dark);
+}
+
+/* ---------- Main content offset for sidebar ---------- */
+.main {
+  margin-left: var(--sidebar-width, 260px);
+  flex: 1;
+  padding: 20px;
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+}
+
+/* ---------- Background Effects ---------- */
+.backgroundEffects {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(140px);
+  opacity: 0.35;
+}
+
+.glow1 {
+  top: -20%;
+  right: -10%;
+  width: 60vw;
+  height: 60vw;
+  background: radial-gradient(circle, var(--intel-blue), transparent 70%);
+}
+
+.glow2 {
+  bottom: -30%;
+  left: -20%;
+  width: 70vw;
+  height: 70vw;
+  background: radial-gradient(circle, var(--intel-dark-blue), transparent 60%);
+}
+
+/* ---------- Check Grid ---------- */
+.checkGrid {
+  display: grid;
+  grid-template-columns: 1.5fr 1.4fr;
+  gap: 20px;
+  flex-grow: 1;
+  height: calc(100vh - 40px);
+}
+
+/* ---------- Feed Container ---------- */
+.activeFeedContainer {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+  position: relative;
+  min-height: 600px;
+  border-radius: var(--border-radius, 16px);
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+}
+
+/* ---------- Top Status Bar ---------- */
+.topStatusBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 20px;
+  background: rgba(0, 0, 0, 0.4);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  z-index: 40;
+  gap: 12px;
+}
+
+.statusControls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  transition: all 0.2s;
+  border: none;
+}
+
+.btnAgent {
+  background: var(--intel-blue);
+  color: white;
+  box-shadow: 0 0 15px rgba(0, 113, 197, 0.4);
+}
+
+.btnMeasureStart {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+  border: 1px solid rgba(34, 197, 94, 0.4);
+}
+
+.statusProgress {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  padding: 0 20px;
+}
+
+.statusProgressText {
+  font-size: 14px;
+  color: white;
+  margin-bottom: 8px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.progressBarContainer {
+  width: 100%;
+  max-width: 400px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.overallProgress {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #4ade80, var(--intel-cyan));
+  transition: width 0.3s ease-in-out;
+  box-shadow: 0 0 8px var(--intel-cyan);
+}
+
+.statusBadges {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+/* Mini pill badge */
+.miniPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: white;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.miniPill.good {
+  border-color: rgba(34, 197, 94, 0.35);
+  background: rgba(34, 197, 94, 0.12);
+}
+
+.miniPill.warn {
+  border-color: rgba(245, 158, 11, 0.35);
+  background: rgba(245, 158, 11, 0.12);
+}
+
+.miniPill.bad {
+  border-color: rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.12);
+}
+
+/* ---------- Feed Window ---------- */
+.feedWindow {
+  position: relative;
+  overflow: hidden;
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  background: #0b1220;
+  min-height: 400px;
+}
+
+/* Camera off placeholder */
+.cameraPlaceholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  z-index: 1;
+  background: #0b1220;
+}
+
+.cameraPlaceholder i {
+  font-size: 4rem;
+  color: rgba(255, 255, 255, 0.15);
+}
+
+.cameraPlaceholder p {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.cameraPlaceholder span {
+  color: rgba(255, 255, 255, 0.25);
+  font-size: 13px;
+}
+
+.cameraPlaceholder.hidden {
+  display: none;
+}
+
+/* Webcam video */
+.webcamVideo {
+  display: none;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: top;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: #0b1220;
+}
+
+.videoVisible {
+  display: block;
+}
+
+/* Pose overlay canvas */
+.overlayCanvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* ---------- Legacy ---------- */
+.photoImg {
+  display: none;
+}
+
+/* Webcam status overlay */
+.webcamStatusOverlay {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+}
+
+.webcamStatusBadge {
+  background: rgba(11, 18, 32, 0.85);
+  border: 1px solid rgba(0, 199, 253, 0.35);
+  border-radius: 999px;
+  padding: 8px 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  backdrop-filter: blur(8px);
+}
+
+.webcamStatusIcon {
+  color: #4ade80;
+  font-size: 16px;
+}
+
+.webcamStatusText {
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Camera error overlay */
+.cameraErrorOverlay {
+  position: absolute;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 60;
+  background: rgba(0, 0, 0, 0.85);
+  text-align: center;
+  padding: 24px;
+}
+
+.cameraErrorOverlay.visible {
+  display: flex;
+}
+
+.cameraErrorIcon {
+  font-size: 3rem;
+  color: #f87171;
+  margin-bottom: 16px;
+}
+
+.cameraErrorTitle {
+  color: white;
+  margin-bottom: 8px;
+  font-size: 20px;
+}
+
+.cameraErrorDesc {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+  max-width: 340px;
+  line-height: 1.6;
+}
+
+.btnRetryCamera {
+  margin-top: 20px;
+  background: var(--intel-blue);
+  color: white;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+/* Webcam loading overlay */
+.webcamLoadingOverlay {
+  position: absolute;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 55;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(6px);
+  gap: 16px;
+}
+
+.webcamLoadingOverlay.visible {
+  display: flex;
+}
+
+.webcamSpinner {
+  width: 48px;
+  height: 48px;
+  border: 3px solid rgba(0, 199, 253, 0.2);
+  border-top-color: #00c7fd;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.webcamLoadingText {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* Guide overlay */
+.guideOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 20;
+  text-align: center;
+  padding: 20px;
+  transition: opacity 0.3s;
+  background: rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+}
+
+.guideIcon {
+  font-size: 4rem;
+  color: var(--intel-cyan);
+  margin-bottom: 20px;
+  text-shadow: 0 0 20px rgba(0, 199, 253, 0.5);
+}
+
+.guideTitle {
+  color: white;
+  margin-bottom: 12px;
+  font-weight: 700;
+  font-size: 26px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.guideDesc {
+  color: rgba(255, 255, 255, 0.8);
+  max-width: 420px;
+  line-height: 1.6;
+  font-size: 16px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+/* Countdown overlay */
+.countdownOverlay {
+  position: absolute;
+  left: 50%;
+  top: 40%;
+  transform: translate(-50%, -50%);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 40;
+  pointer-events: none;
+}
+
+.countdownOverlay.visible {
+  display: flex;
+}
+
+.countdownNumber {
+  font-size: 160px;
+  font-weight: 800;
+  color: white;
+  text-shadow: 0 0 50px var(--intel-cyan), 0 4px 20px rgba(0, 0, 0, 0.5);
+  line-height: 1;
+  font-family: 'Inter', sans-serif;
+}
+
+.countdownText {
+  font-size: 24px;
+  font-weight: 700;
+  color: white;
+  margin-top: 10px;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+  background: rgba(0, 199, 253, 0.2);
+  border: 1px solid rgba(0, 199, 253, 0.4);
+  padding: 8px 24px;
+  border-radius: 30px;
+  backdrop-filter: blur(8px);
+}
+
+/* ---------- Realtime Feedback Area ---------- */
+.realtimeFeedbackArea {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  z-index: 30;
+  pointer-events: none;
+  background: linear-gradient(0deg, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.4) 50%, rgba(0, 0, 0, 0) 100%);
+  backdrop-filter: none;
+}
+
+.realtimeFeedbackArea > * {
+  pointer-events: auto;
+}
+
+/* Leveler box */
+.levelerContainer {
+  background: rgba(11, 18, 32, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  padding: 20px;
+  width: 240px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+.levelerTitle {
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 700;
+}
+
+.levelerTitle i {
+  color: var(--intel-cyan);
+  font-size: 16px;
+}
+
+.levelItem {
+  margin-bottom: 16px;
+}
+
+.levelItem:last-child {
+  margin-bottom: 0;
+}
+
+.levelLabel {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.levelLabelLeft {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.levelBarBg {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  position: relative;
+}
+
+.levelCenterMark {
+  position: absolute;
+  left: 50%;
+  top: -4px;
+  bottom: -4px;
+  width: 2px;
+  background: rgba(255, 255, 255, 0.8);
+  z-index: 2;
+  border-radius: 1px;
+}
+
+.levelIndicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: left 0.1s linear, background 0.3s;
+}
+
+/* Action message box */
+.actionMessageBox {
+  background: rgba(11, 18, 32, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(12px);
+  padding: 16px 32px;
+  border-radius: 50px;
+  text-align: center;
+  margin: 0 auto;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  transition: all 0.3s ease;
+}
+
+.actionMessageIcon {
+  color: var(--intel-cyan);
+  font-size: 22px;
+}
+
+.actionMessageText {
+  color: white;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+/* Retake area */
+.retakeArea {
+  display: none;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.retakeArea.visible {
+  display: flex;
+}
+
+.btnRetake {
+  background: rgba(245, 158, 11, 0.2);
+  color: #facc15;
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+/* ---------- Diagnostics Panel ---------- */
+.diagnosticsPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+}
+
+.mobileResultsSummary {
+  display: none;
+}
+
+.mobileResultsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.mobileResultsHeader h3 {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.mobilePill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(0, 199, 253, 0.15);
+  color: var(--intel-cyan);
+  border: 1px solid rgba(0, 199, 253, 0.3);
+}
+
+.mobileResultsSummary p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.mobileResultsActions {
+  display: flex;
+  gap: 8px;
+}
+
+.mobileActionLink {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.mobileActionLink:hover {
+  background: var(--glass-bg-hover);
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+/* Analysis list */
+.diagCard {
+  padding: 0;
+  overflow: hidden;
+}
+
+.diagCard .cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.diagCard .cardHeader h2 {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.iconFaded {
+  color: var(--text-secondary);
+  opacity: 0.5;
+  font-size: 16px;
+}
+
+.analysisList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 520px;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.analysisItem {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  padding: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.analysisItem:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.analysisItem.active {
+  border-color: rgba(0, 199, 253, 0.45);
+  box-shadow: 0 0 0 1px rgba(0, 199, 253, 0.15) inset;
+  background: rgba(0, 199, 253, 0.08);
+}
+
+.analysisTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+  align-items: center;
+}
+
+.analysisName {
+  font-weight: 700;
+  color: white;
+  font-size: 14px;
+}
+
+.analysisBadge {
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 4px 8px;
+  color: white;
+  background: rgba(255, 255, 255, 0.10);
+  white-space: nowrap;
+}
+
+.analysisMeta {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.analysisSummary {
+  font-size: 12px;
+  line-height: 1.5;
+  color: #cbd5e1;
+}
+
+/* Terminal card */
+.terminalCard {
+  padding: 0;
+  overflow: hidden;
+}
+
+.terminalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid var(--glass-border);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.dots {
+  display: flex;
+  gap: 6px;
+}
+
+.dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.dot.red { background: #ff5f56; }
+.dot.yellow { background: #ffbd2e; }
+.dot.green { background: #27c93f; }
+
+.terminalBody {
+  white-space: pre-wrap;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.9rem;
+  margin: 0;
+  padding: 1.5rem;
+  color: #a3e635;
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.2);
+  min-height: 120px;
+  max-height: 200px;
+}
+
+/* ---------- Modal ---------- */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+
+.modalOverlay.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modalContent {
+  background: var(--bg-lighter);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  padding: 32px;
+  max-width: 440px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+}
+
+.modalHeader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.modalHeader i {
+  font-size: 3rem;
+  color: #10B981;
+}
+
+.modalHeader h2 {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.modalContent p {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+
+.modalActions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.modalBtn {
+  padding: 12px 28px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.modalBtnPrimary {
+  background: var(--intel-blue);
+  color: white;
+}
+
+.modalBtnPrimary:hover {
+  background: #0082e6;
+}
+
+.modalBtnSecondary {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  color: var(--text-secondary);
+}
+
+.modalBtnSecondary:hover {
+  background: var(--glass-bg-hover);
+  color: var(--text-primary);
+}
+
+/* ---------- Shared Card ---------- */
+.gridCard {
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--border-radius, 16px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+/* ---------- Tab Content ---------- */
+.tabContent {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.tabContent.active {
+  /* Tab is visible — active by default */
+}
+
+/* ---------- Analysis Toolbar ---------- */
+.analysisToolbar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+  border: 1px solid var(--glass-border);
+}
+
+.analysisSelect {
+  min-width: 160px;
+  background: rgba(255, 255, 255, 0.06);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+}
+
+.analysisSelect:focus {
+  border-color: rgba(0, 199, 253, 0.4);
+}
+
+.analysisSelect option {
+  background: #0d1322;
+  color: white;
+}
+
+.toolbarBtn {
+  background: rgba(255, 255, 255, 0.06);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+
+.toolbarBtn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* ---------- Analysis Empty State ---------- */
+.analysisEmpty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  text-align: center;
+  gap: 8px;
+}
+
+/* ---------- Feed Elements ---------- */
+.webcamVideo {
+  display: none;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: top;
+  position: relative;
+  z-index: 1;
+  background: #0b1220;
+  border-radius: 12px;
+}
+
+.photoImg {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: top;
+  position: relative;
+  z-index: 1;
+  background: #0b1220;
+  border-radius: 12px;
+}
+
+/* Step mask — transparent overlay between loading and guide */
+.stepMask {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0);
+  z-index: 5;
+  transition: background 0.3s;
+  pointer-events: none;
+}
+
+/* Mobile results summary */
+.mobileResultsSummary {
+  display: none;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 900px) {
+  .main {
+    margin-left: 0;
+  }
+
+  .checkGrid {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+
+  .mobileResultsSummary {
+    display: block;
+  }
+
+  .tabContent {
+    display: none;
+  }
+}

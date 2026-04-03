@@ -1,0 +1,104 @@
+// GLB 파일 로딩 함수 (수정됨)
+function loadGLBFile(path) {
+  const metaEl = document.getElementById("bodyModelInfo");
+  if (!metaEl) return;
+
+  try {
+    metaEl.innerHTML = `<div><i class="fa-solid fa-spinner fa-spin"></i> GLB 파일 로드 중...</div>`;
+
+    // 기존 모델 정리
+    if (state.avatarModel) {
+      modelScene.remove(state.avatarModel);
+      state.avatarModel = null;
+    }
+    if (modelMesh) {
+      modelScene.remove(modelMesh);
+      modelMesh.geometry.dispose();
+      modelMesh.material.dispose();
+      modelMesh = null;
+    }
+    if (modelWireframe) {
+      modelScene.remove(modelWireframe);
+      modelWireframe.geometry.dispose();
+      modelWireframe.material.dispose();
+      modelWireframe = null;
+    }
+
+    // Three.js GLTFLoader 사용
+    if (!THREE.GLTFLoader) {
+      console.error("❌ GLTFLoader is not available.");
+      metaEl.innerHTML = `<div style="color:#ff6b6b;">❌ GLTFLoader를 사용할 수 없습니다.</div>`;
+      return;
+    }
+
+    const loader = new THREE.GLTFLoader();
+    loader.load(
+      path,
+      (gltf) => {
+        console.log("✅ GLB file loaded successfully:", gltf);
+
+        try {
+          const root = gltf.scene;
+          const glbMesh = root.children[0] || root;
+
+          if (!glbMesh) {
+            throw new Error("No mesh found in GLTF file");
+          }
+
+          // 메쉬 재질 적용
+          glbMesh.traverse((node) => {
+            if (node.isMesh) {
+              node.material = new THREE.MeshStandardMaterial({
+                color: 0x97dffc,
+                roughness: 0.84,
+                metalness: 0.02,
+                transparent: true,
+                opacity: 0.92,
+                side: THREE.DoubleSide
+              });
+            }
+          });
+
+          modelScene.add(root);
+          state.avatarModel = root;
+          modelMesh = glbMesh;
+
+          const box = new THREE.Box3().setFromObject(glbMesh);
+          const size = box.getSize(new THREE.Vector3());
+          const center = box.getCenter(new THREE.Vector3());
+          glbMesh.position.sub(center);
+          const dominantSize = Math.max(size.x, size.y, size.z);
+          modelCamera.position.set(0, size.y * 0.46, dominantSize * 1.38);
+
+          metaEl.innerHTML = [
+            `<div><strong>Model Type:</strong> client_humanoid_body_v2 (GLB)</div>`,
+            `<div><strong>File:</strong> ${path}</div>`,
+            `<div><strong>Height:</strong> 180 cm</div>`,
+            `<div><strong>Shoulder Width:</strong> 42 cm</div>`,
+            `<div><strong>Pelvis Width:</strong> 34 cm</div>`
+          ].join("");
+
+          console.log("✅ GLB model rendered successfully");
+        } catch (err) {
+          console.error("❌ Error processing GLTF:", err);
+          metaEl.innerHTML = `<div style="color:#ff6b6b;">❌ GLB 처리 오류: ${err.message}</div>`;
+        }
+      },
+      (xhr) => {
+        if (xhr.lengthComputable && xhr.total > 0) {
+          const percent = (xhr.loaded / xhr.total * 100).toFixed(1);
+          console.log(`📊 Loading progress: ${percent}%`);
+        }
+      },
+      (err) => {
+        console.error("❌ GLTFLoader error:", err);
+        console.error("Error details:", err.message);
+        const errorMsg = `❌ GLB 파일 로드 실패: ${err.message || 'Unknown error'}`;
+        metaEl.innerHTML = `<div style="color:#ff6b6b; padding:20px; line-height:1.6;">${errorMsg}</div>`;
+      }
+    );
+  } catch (err) {
+    console.error("❌ Error loading GLB file:", err);
+    metaEl.innerHTML = `<div style="color:#ff6b6b;">❌ 오류 발생: ${err.message}</div>`;
+  }
+}

@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Health Check<!-- ROM --></title>
+    <meta name="description" content="ROM measurement using Intel RealSense + MediaPipe overlay" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Share+Tech+Mono&display=swap"
+        rel="stylesheet">
+
+    <link rel="stylesheet" href="https://healthcare-web-seven.vercel.app/dashboard.css?v=3">
+    <link rel="stylesheet" href="/ui/health-check.css?v=20260307_overlay">
+    <link rel="stylesheet" href="https://healthcare-web-seven.vercel.app/settings.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        .feed-window {
+            position: relative;
+            overflow: hidden;
+            height: 480px;
+            /* Adjusted height */
+            flex: none !important;
+        }
+
+        .terminal-card {
+            margin-top: 20px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .terminal-content {
+            padding: 1.2rem 1.4rem;
+            overflow-y: auto;
+        }
+
+        .analysis-item-visual {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            min-width: 60px;
+        }
+
+        .analysis-badge {
+            font-size: 10px;
+            font-weight: 800;
+            border-radius: 6px;
+            padding: 2px 6px;
+            color: white;
+            background: rgba(0, 199, 253, 0.2);
+            border: 1px solid rgba(0, 199, 253, 0.3);
+            white-space: nowrap;
+            display: inline-block;
+        }
+
+        .measurement-icon-img {
+            width: 44px;
+            height: 44px;
+            object-fit: contain;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .analysis-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            padding: 14px 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .analysis-item-content {
+            flex: 1;
+        }
+
+        .analysis-item:hover {
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .analysis-item.active {
+            border-color: rgba(0, 199, 253, 0.45);
+            box-shadow: 0 0 0 1px rgba(0, 199, 253, 0.15) inset;
+            background: rgba(0, 199, 253, 0.08);
+        }
+
+        .analysis-top {
+            margin-bottom: 8px;
+        }
+
+        .analysis-name {
+            font-weight: 700;
+            color: white;
+            font-size: 14px;
+        }
+
+
+        .analysis-meta {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .analysis-summary {
+            font-size: 12px;
+            line-height: 1.5;
+            color: #cbd5e1;
+        }
+
+        .quality-box {
+            margin-top: 14px;
+            padding: 12px 14px;
+            border-radius: 12px;
+            background: rgba(0, 199, 253, 0.08);
+            border: 1px solid rgba(0, 199, 253, 0.18);
+            color: white;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .section-title {
+            font-size: 13px;
+            font-weight: 700;
+            margin: 14px 0 8px;
+            color: var(--intel-cyan);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .card-header-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .header-btn {
+            background: rgba(255, 255, 255, 0.08);
+            color: #e2e8f0;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .header-btn:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .header-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            filter: grayscale(1);
+        }
+
+        .header-btn.primary {
+            background: linear-gradient(135deg, var(--intel-blue), var(--intel-cyan));
+            color: white;
+            border: none;
+        }
+
+        .header-btn.primary:hover:not(:disabled) {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+    </style>
+    <link rel="stylesheet" href="/ui/sidebar.css?v=1" />
+    <script src="/ui/user-context.js" defer></script>
+    <script src="/ui/sidebar.js" defer></script>
+</head>
+
+<body>
+    <div class="background-effects">
+        <div class="glow glow-1"></div>
+        <div class="glow glow-2"></div>
+        <div class="glow glow-3"></div>
+    </div>
+    <aside class="sidebar">
+        <div class="brand-header">
+            <div class="logo-icon">
+                <img src="/logo.svg" alt="보듬케어 로고" style="width: 100%; height: 100%; object-fit: contain;">
+            </div>
+            <span class="brand-text" data-i18n="brand_name">보듬케어</span>
+        </div>
+                <nav class="nav-menu">
+            <a href="/dashboard.html" class="nav-item">
+                <i class="fa-solid fa-chart-pie"></i>
+                <span data-i18n="nav_dash">Dashboard</span>
+            </a>
+            <a href="/statistics.html" class="nav-item">
+                <i class="fa-solid fa-chart-line"></i>
+                <span data-i18n="nav_stats">Statistics</span>
+            </a>
+
+            <div class="nav-item has-dropdown">
+                <div class="dropdown-trigger">
+                    <i class="fa-solid fa-heart-pulse"></i>
+                    <span data-i18n="nav_health">Health Check</span>
+                    <i class="fa-solid fa-chevron-down chevron"></i>
+                </div>
+                <div class="submenu">
+                    <a href="/ui/health-check.html" class="submenu-item" data-i18n="nav_bodycheck">bodycheck</a>
+                    <a href="/ui/anthropometry.html" class="submenu-item"
+                        data-i18n="nav_anthropometry">anthropometry</a>
+                    <a href="/ui/rom.html" class="submenu-item" data-i18n="nav_rom">rom</a>
+                    <a href="/ui/mobilityreport.html" class="submenu-item" data-i18n="nav_mobility">ROM Report</a>
+                    <a href="/ui/movement.html" class="submenu-item" data-i18n="nav_movement">Performance Analysis</a>
+                    <a href="/ui/performancereport.html" class="submenu-item" data-i18n="nav_perf">performancereport</a>
+                    <a href="/ui/history.html" class="submenu-item" data-i18n="nav_history">history</a>
+                </div>
+            </div>
+
+            <a href="/prescription.html" class="nav-item">
+                <i class="fa-solid fa-prescription-bottle-medical"></i>
+                <span data-i18n="nav_presc">Prescriptions</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-controls"
+            style="margin-top: auto; padding: 0 16px 16px; display: flex; gap: 10px; justify-content: center;">
+            <button id="themeToggleBtn" class="icon-btn" aria-label="Toggle Theme"
+                style="background: rgba(255,255,255,0.05); color: var(--text-secondary); border: 1px solid rgba(255,255,255,0.1); width: 36px; height: 36px; border-radius: 50%; cursor: pointer; transition: all 0.2s;">
+                <i class="fa-solid fa-moon"></i>
+            </button>
+            <button id="langToggleBtn" class="icon-btn" aria-label="Toggle Language"
+                style="background: rgba(255,255,255,0.05); color: var(--text-secondary); border: 1px solid rgba(255,255,255,0.1); width: 36px; height: 36px; border-radius: 50%; cursor: pointer; transition: all 0.2s; font-weight: 600; font-size: 12px;">
+                KO
+            </button>
+        </div>
+
+        <div class="user-profile">
+            <div class="avatar">
+                <img src="https://ui-avatars.com/api/?name=Alex+Doe&background=0071C5&color=fff&size=100"
+                    alt="User Profile">
+            </div>
+            <div class="user-info">
+                <h4 id="user-display-email">Alex Doe</h4>
+                <p data-i18n="nav_plan">Standard Plan</p>
+            </div>
+            <button class="logout-btn" aria-label="Logout" onclick="window.location.href='/index.html'">
+                <i class="fa-solid fa-arrow-right-from-bracket"></i>
+            </button>
+        </div>
+    </aside>
+    <main class="dashboard-main">
+        <div class="check-grid">
+            <div class="active-feed-container" style="min-height: calc(100vh - 80px);">
+                <div class="top-status-bar"
+                    style="display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 16px 24px; border-bottom: 1px solid rgba(255,255,255,0.08); background: rgba(0,0,0,0.2);">
+                    <div class="status-controls" style="display: flex; gap: 12px; align-items: center;"><button
+                            class="btn" id="btnAgent"
+                            style="background: var(--intel-blue); color: white; border: none; padding: 10px 18px; border-radius: 10px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px;"><i
+                                class="fa-solid fa-power-off"></i><span id="btnAgentText"
+                                data-i18n="hc_agent_start">에이전트
+                                켜기</span></button></div>
+                    <div class="status-progress"
+                        style="display:flex; flex-direction:column; align-items:center; flex:1; padding:0 20px;">
+                        <div id="currentStepText" data-i18n="hc_select_rom"
+                            style="font-size:14px; color:white; margin-bottom:8px; font-weight:700; letter-spacing:0.3px;">
+                            ROM 측정 항목을 선택하세요 </div>
+                        <div class="progress-bar-container"
+                            style="width: 100%; max-width: 400px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; position: relative;">
+                            <div id="overallProgress"
+                                style="height: 100%; width: 0%; background: linear-gradient(90deg, #4ade80, var(--intel-cyan)); transition: width 0.3s ease-in-out; box-shadow: 0 0 8px var(--intel-cyan);">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="status-badges" style="display: flex; gap: 10px; align-items: center;">
+                        <div class="mini-pill" id="badgeTracking"><i class="fa-solid fa-user-slash"
+                                id="trackingIcon"></i><span id="trackingText" data-i18n="hc_track_off">Tracking
+                                Off</span></div>
+                        <div class="mini-pill" id="badgeView"><i class="fa-solid fa-arrows-spin"></i><span id="viewText"
+                                data-i18n="hc_rom_mode">ROM Mode</span></div>
+                    </div>
+                </div>
+                <div class="feed-window" id="feedWindow"><img src="/ui/images/rom_visual.png" alt="ROM Stream"
+                        id="photo"
+                        style="width: 100%; height: 100%; object-fit: contain; object-position: center; position: relative; z-index: 1;"><canvas
+                        id="overlayCanvas"></canvas>
+                    <div id="stepMask"
+                        style="position: absolute; inset: 0; background: rgba(0,0,0,0); z-index: 5; transition: background 0.3s; pointer-events: none;">
+                    </div>
+                    <!-- Countdown Overlay -->
+                    <div id="countdownOverlay"
+                        style="position: absolute; left: 50%; top: 75%; transform: translate(-50%, -50%); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 40; pointer-events: none;">
+                        <div id="countdownNumber"
+                            style="font-size: 160px; font-weight: 800; color: white; text-shadow: 0 0 50px var(--intel-cyan), 0 4px 20px rgba(0,0,0,0.5); line-height: 1; font-family: 'Inter', sans-serif;">
+                            3</div>
+
+                    </div>
+                    <div id="guideOverlay"
+                        style="position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; z-index:20; text-align:center; padding:20px; transition:opacity .3s; pointer-events:none; background: rgba(0,0,0,0.55); backdrop-filter: blur(4px);">
+                        <i id="guideIcon" class="fa-solid fa-arrows-spin"
+                            style="font-size:4rem; color:var(--intel-cyan); margin-bottom:20px; text-shadow:0 0 20px rgba(0,199,253,0.5);"></i>
+                        <h2 id="guideTitle" data-i18n="hc_guide_rom_title"
+                            style="color:white; margin-bottom:12px; font-weight:700; font-size:26px; text-shadow:0 2px 4px rgba(0,0,0,0.8);">
+                            ROM 측정 항목 선택 </h2>
+                        <p id="guideDesc" data-i18n="hc_guide_rom_desc"
+                            style="color:rgba(255,255,255,0.8); max-width:420px; line-height:1.6; font-size:16px; text-shadow:0 1px 3px rgba(0,0,0,0.8);">
+                            오른쪽 패널에서 측정할 항목을 선택하면 자세 안내가 표시됩니다. </p>
+                        <img id="guideImg" src=""
+                            style="display:none; max-width:280px; margin-top:20px; border-radius:12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 2px solid rgba(255,255,255,0.1);">
+                    </div>
+                    <div class="realtime-feedback-area"
+                        style="position: absolute; bottom: 0; left: 0; right: 0; padding: 30px; display: flex; justify-content: center; z-index: 30; pointer-events: none; background: linear-gradient(0deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0) 100%);">
+                        <div id="actionMessageBox"
+                            style="background: rgba(11, 18, 32, 0.8); border: 1px solid rgba(255,255,255,0.2); backdrop-filter: blur(12px); padding: 16px 32px; border-radius: 50px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); pointer-events: auto; display: inline-flex; align-items: center; gap: 14px; transition: all 0.3s ease;">
+                            <i class="fa-solid fa-circle-info" id="actionMessageIcon"
+                                style="color: var(--intel-cyan); font-size: 22px;"></i><span id="actionMessageText"
+                                data-i18n="hc_action_select"
+                                style="color: white; font-size: 18px; font-weight: 700; letter-spacing: -0.5px;">검사 항목을
+                                먼저 선택하세요. </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="grid-card terminal-card">
+                    <div class="terminal-header"><span data-i18n="hc_guide_section">Measurement Guide</span>
+                        <div class="dots"><span class="dot red"></span><span class="dot yellow"></span><span
+                                class="dot green"></span></div>
+                    </div>
+                    <div class="terminal-content">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div style="flex: 1;">
+                                <div class="section-title" data-i18n="hc_selected_item">선택 항목</div>
+                                <div id="selectedName" style="font-size: 18px; font-weight: 800; color: white;"
+                                    data-i18n="hc_none_selected">선택 없음
+                                </div>
+                                <div id="selectedSummary" data-i18n="hc_selected_desc"
+                                    style="margin-top: 8px; color: #cbd5e1; font-size: 13px; line-height: 1.6;">ROM 측정
+                                    항목을 선택하면 안내가 여기에 표시됩니다. </div>
+                            </div>
+                            <div style="flex: 1; margin-left: 24px;">
+                                <div class="section-title" data-i18n="hc_meta_info">측정 정보</div>
+                                <div class="analysis-meta" style="margin-bottom: 12px;">
+                                    <div><strong data-i18n="hc_meta_joint">관절</strong><br><span id="metaJoint">-</span>
+                                    </div>
+                                    <div><strong data-i18n="hc_meta_dir">방향</strong><br><span
+                                            id="metaDirection">-</span></div>
+                                    <div><strong data-i18n="hc_meta_pose">자세</strong><br><span id="metaPosture">-</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="section-title" data-i18n="hc_guide_order">안내 순서</div>
+                        <ol id="instructionList"
+                            style="margin: 0; padding-left: 18px; color: #dbeafe; font-size: 13px; line-height: 1.7; display: grid; grid-template-columns: 1fr 1fr; gap: 4px 24px;">
+                            <li data-i18n="rom_inst_select">측정 항목을 선택하세요.</li>
+                            <li data-i18n="rom_inst_pose">중앙 화면에서 자세를 맞추세요.</li>
+                            <li data-i18n="rom_inst_start">에이전트를 켜고 측정을 시작하세요.</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+            <div class="diagnostics-panel">
+                <div class="tab-content active" id="tab-rom">
+                    <div class="grid-card diag-card" style="flex: 1; display: flex; flex-direction: column;">
+                        <div class="card-header" style="justify-content: space-between;">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <h2 data-i18n="hc_rom_list_title">ROM Measure List</h2><i
+                                    class="fa-solid fa-arrows-spin icon-faded"></i>
+                            </div>
+                            <div class="card-header-actions"><button class="header-btn primary" id="btnMeasureStart"
+                                    disabled><i class="fa-solid fa-play"></i><span id="btnMeasureText"
+                                        data-i18n="hc_measure_start">측정
+                                        시작</span></button></div>
+                        </div>
+                        <div class="analysis-list" id="analysisList" style="flex: 1; max-height: none;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    <!-- Completion Modal -->
+    <div id="completionModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <i class="fa-solid fa-circle-check"></i>
+                <h2 data-i18n="hc_analysis_complete">측정 완료</h2>
+            </div>
+            <p id="modalMessage" data-i18n="rom_complete_msg">측정이 성공적으로 완료되었습니다.</p>
+            <div class="modal-actions">
+                <button id="btnViewReport" class="modal-btn primary" data-i18n="nav_mobility_report">리포트 확인</button>
+                <button id="btnCloseModal" class="modal-btn secondary" data-i18n="hc_level_normal">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/settings.js"></script>
+    <script src="/ui/user-context.js"></script>
+    <script src="/ui/audio-manager.js"></script>
+    <script src="/ui/rom.js?v=3"></script>
+</body>
+
+</html>

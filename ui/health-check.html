@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title data-i18n="hc_title">Health Check - BodumCare</title>
+    <meta name="description" content="Live posture and health check using Intel RealSense + MediaPipe overlay" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Share+Tech+Mono&display=swap"
+        rel="stylesheet">
+
+    <link rel="stylesheet" href="https://healthcare-web-seven.vercel.app/dashboard.css?v=3">
+    <link rel="stylesheet" href="/ui/health-check.css?v=20260307_overlay">
+    <link rel="stylesheet" href="https://healthcare-web-seven.vercel.app/settings.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- WEBCAM_POSE: MediaPipe Tasks Vision for browser-based pose detection -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.17/vision_bundle.js" crossorigin="anonymous"></script>
+
+    <style>
+        .feed-window {
+            position: relative;
+            overflow: hidden;
+        }
+
+        #photo {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            max-width: 100%;
+            max-height: 100%;
+            margin: 0 auto;
+            display: block;
+            border-radius: 12px;
+            position: relative;
+            z-index: 1;
+            background: #0b1220;
+        }
+
+        #overlayCanvas {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 12;
+            pointer-events: none;
+        }
+
+        .analysis-toolbar {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .analysis-toolbar select,
+        .analysis-toolbar button {
+            background: rgba(255, 255, 255, 0.06);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .analysis-toolbar select {
+            min-width: 180px;
+        }
+
+        .analysis-toolbar button {
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .analysis-toolbar button:hover {
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        .mini-status {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .mini-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 600;
+            color: white;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .mini-pill.good {
+            border-color: rgba(34, 197, 94, 0.35);
+            background: rgba(34, 197, 94, 0.12);
+        }
+
+        .mini-pill.warn {
+            border-color: rgba(245, 158, 11, 0.35);
+            background: rgba(245, 158, 11, 0.12);
+        }
+
+        .mini-pill.bad {
+            border-color: rgba(239, 68, 68, 0.35);
+            background: rgba(239, 68, 68, 0.12);
+        }
+
+        .analysis-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 520px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .analysis-item {
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .analysis-item:hover {
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .analysis-item.active {
+            border-color: rgba(0, 199, 253, 0.45);
+            box-shadow: 0 0 0 1px rgba(0, 199, 253, 0.15) inset;
+            background: rgba(0, 199, 253, 0.08);
+        }
+
+        .analysis-top {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 8px;
+            align-items: center;
+        }
+
+        .analysis-name {
+            font-weight: 700;
+            color: white;
+            font-size: 14px;
+        }
+
+        .analysis-badge {
+            font-size: 11px;
+            font-weight: 700;
+            border-radius: 999px;
+            padding: 4px 8px;
+            color: white;
+            background: rgba(255, 255, 255, 0.10);
+            white-space: nowrap;
+        }
+
+        .analysis-meta {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .analysis-summary {
+            font-size: 12px;
+            line-height: 1.5;
+            color: #cbd5e1;
+        }
+
+        .quality-box {
+            margin-top: 14px;
+            padding: 12px 14px;
+            border-radius: 12px;
+            background: rgba(0, 199, 253, 0.08);
+            border: 1px solid rgba(0, 199, 253, 0.18);
+            color: white;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .section-title {
+            font-size: 13px;
+            font-weight: 700;
+            margin: 14px 0 8px;
+            color: var(--intel-cyan);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* WEBCAM_CANDIDATE: Webcam video element styles */
+        #webcamVideo {
+            border-radius: 12px;
+        }
+
+        /* WEBCAM_CANDIDATE: Webcam loading spinner */
+        #webcamLoadingOverlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 45;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(6px);
+            gap: 16px;
+        }
+
+        .webcam-spinner {
+            width: 48px;
+            height: 48px;
+            border: 3px solid rgba(0, 199, 253, 0.2);
+            border-top-color: #00c7fd;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        #webcamLoadingText {
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 14px;
+            font-weight: 600;
+        }
+    </style>
+    <link rel="stylesheet" href="/ui/sidebar.css?v=1" />
+    <script src="/ui/user-context.js" defer></script>
+    <script src="/ui/sidebar.js" defer></script>
+</head>
+
+<body>
+    <div class="background-effects">
+        <div class="glow glow-1"></div>
+        <div class="glow glow-2"></div>
+        <div class="glow glow-3"></div>
+    </div>
+    <aside class="sidebar">
+        <div class="brand-header">
+            <div class="logo-icon">
+                <img src="/logo.svg" alt="보듬케어 로고" style="width: 100%; height: 100%; object-fit: contain;">
+            </div>
+            <span class="brand-text" data-i18n="brand_name">보듬케어</span>
+        </div>
+                <nav class="nav-menu">
+            <a href="/dashboard.html" class="nav-item">
+                <i class="fa-solid fa-chart-pie"></i>
+                <span data-i18n="nav_dash">Dashboard</span>
+            </a>
+            <a href="/statistics.html" class="nav-item">
+                <i class="fa-solid fa-chart-line"></i>
+                <span data-i18n="nav_stats">Statistics</span>
+            </a>
+
+            <div class="nav-item has-dropdown">
+                <div class="dropdown-trigger">
+                    <i class="fa-solid fa-heart-pulse"></i>
+                    <span data-i18n="nav_health">Health Check</span>
+                    <i class="fa-solid fa-chevron-down chevron"></i>
+                </div>
+                <div class="submenu">
+                    <a href="/ui/health-check.html" class="submenu-item" data-i18n="nav_bodycheck">bodycheck</a>
+                    <a href="/ui/anthropometry.html" class="submenu-item"
+                        data-i18n="nav_anthropometry">anthropometry</a>
+                    <a href="/ui/rom.html" class="submenu-item" data-i18n="nav_rom">rom</a>
+                    <a href="/ui/mobilityreport.html" class="submenu-item" data-i18n="nav_mobility">ROM Report</a>
+                    <a href="/ui/movement.html" class="submenu-item" data-i18n="nav_movement">Performance Analysis</a>
+                    <a href="/ui/performancereport.html" class="submenu-item" data-i18n="nav_perf">performancereport</a>
+                    <a href="/ui/history.html" class="submenu-item" data-i18n="nav_history">history</a>
+                </div>
+            </div>
+
+            <a href="/prescription.html" class="nav-item">
+                <i class="fa-solid fa-prescription-bottle-medical"></i>
+                <span data-i18n="nav_presc">Prescriptions</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-controls"
+            style="margin-top: auto; padding: 0 16px 16px; display: flex; gap: 10px; justify-content: center;">
+            <button id="themeToggleBtn" class="icon-btn" aria-label="Toggle Theme"
+                style="background: rgba(255,255,255,0.05); color: var(--text-secondary); border: 1px solid rgba(255,255,255,0.1); width: 36px; height: 36px; border-radius: 50%; cursor: pointer; transition: all 0.2s;">
+                <i class="fa-solid fa-moon"></i>
+            </button>
+            <button id="langToggleBtn" class="icon-btn" aria-label="Toggle Language"
+                style="background: rgba(255,255,255,0.05); color: var(--text-secondary); border: 1px solid rgba(255,255,255,0.1); width: 36px; height: 36px; border-radius: 50%; cursor: pointer; transition: all 0.2s; font-weight: 600; font-size: 12px;">
+                KO
+            </button>
+        </div>
+
+        <div class="user-profile">
+            <div class="avatar">
+                <img src="https://ui-avatars.com/api/?name=Alex+Doe&background=0071C5&color=fff&size=100"
+                    alt="User Profile">
+            </div>
+            <div class="user-info">
+                <h4 id="user-display-email">Alex Doe</h4>
+                <p data-i18n="nav_plan">Standard Plan</p>
+            </div>
+            <button class="logout-btn" aria-label="Logout" onclick="window.location.href='/index.html'">
+                <i class="fa-solid fa-arrow-right-from-bracket"></i>
+            </button>
+        </div>
+    </aside>
+    <main class="dashboard-main">
+        <div class="check-grid">
+            <!-- Left -->
+            <div class="active-feed-container grid-card"
+                style="display: flex; flex-direction: column; padding: 0; overflow: hidden; position: relative; min-height: 600px;">
+                <!-- 1. Top Status Bar -->
+                <div class="top-status-bar"
+                    style="display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; background: rgba(0,0,0,0.4); border-bottom: 1px solid rgba(255,255,255,0.08); z-index: 40;">
+                    <!-- Left: Controls -->
+                    <div class="status-controls" style="display: flex; gap: 12px; align-items: center;">
+                        <button class="btn" id="btnAgent"
+                            style="background: var(--intel-blue); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 14px; box-shadow: 0 0 15px rgba(0, 113, 197, 0.4); transition: all 0.2s;"><i
+                                class="fa-solid fa-power-off"></i><span id="btnAgentText"
+                                data-i18n="hc_agent_start">에이전트
+                                켜기</span></button><button class="btn" id="btnMeasureStart"
+                            style="background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.4); padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 14px; transition: all 0.2s; display: none;"><i
+                                class="fa-solid fa-play"></i><span id="btnMeasureText" data-i18n="hc_measure_start">측정
+                                시작</span></button>
+                    </div>
+                    <!-- Center: Step & Progress -->
+                    <div class="status-progress"
+                        style="display: flex; flex-direction: column; align-items: center; flex: 1; padding: 0 20px;">
+                        <div style="font-size: 14px; color: white; margin-bottom: 8px; font-weight: 700; letter-spacing: 0.5px;"
+                            id="currentStepText" data-i18n="hc_track_waiting">대기 중</div>
+                        <div class="progress-bar-container"
+                            style="width: 100%; max-width: 400px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; position: relative;">
+                            <div id="overallProgress"
+                                style="height: 100%; width: 0%; background: linear-gradient(90deg, #4ade80, var(--intel-cyan)); transition: width 0.3s ease-in-out; box-shadow: 0 0 8px var(--intel-cyan);">
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Right: Badges -->
+                    <div class="status-badges" style="display: flex; gap: 10px; align-items: center;">
+                        <div class="mini-pill" id="badgeTracking"
+                            style="border-color: rgba(255,255,255,0.1); background: rgba(255,255,255,0.05);">
+                            <i class="fa-solid fa-user-slash" id="trackingIcon"></i><span id="trackingText"
+                                data-i18n="hc_track_off">Tracking
+                                Off</span>
+                        </div>
+                        <div class="mini-pill" id="badgeView"
+                            style="border-color: rgba(255,255,255,0.1); background: rgba(255,255,255,0.05);">
+                            <i class="fa-solid fa-street-view"></i><span id="viewText"
+                                data-i18n="hc_unknown_view">Unknown
+                                View</span>
+                        </div>
+                    </div>
+                </div>
+                <!-- 2. Center Live View -->
+                <div class="feed-window" id="feedWindow"
+                    style="flex: 1; display: flex; align-items: flex-start; justify-content: center; position: relative; background: #000;">
+                    <!-- WEBCAM_CANDIDATE: RealSense MJPEG stream (img#photo) → browser webcam (video#webcamVideo) -->
+                    <video id="webcamVideo" autoplay playsinline muted
+                        style="width: 100%; height: 100%; object-fit: contain; object-position: top; position: relative; z-index: 1; display: none; background: #0b1220;">
+                    </video>
+                    <img src="/ui/images/body_check.png" alt="Body frame" id="photo"
+                        style="width: 100%; height: 100%; object-fit: contain; object-position: top; position: relative; z-index: 1;">
+                    <canvas id="overlayCanvas"
+                        style="position: absolute; inset: 0; width: 100%; height: 100%; z-index: 10; pointer-events: none;"></canvas>
+                    <!-- Webcam status overlay (shown when using webcam) -->
+                    <div id="webcamStatusOverlay"
+                        style="position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 50; display: none;">
+                        <div style="background: rgba(11,18,32,0.85); border: 1px solid rgba(0,199,253,0.35); border-radius: 999px; padding: 8px 20px; display: flex; align-items: center; gap: 10px; backdrop-filter: blur(8px);">
+                            <i id="webcamStatusIcon" class="fa-solid fa-camera" style="color: #4ade80; font-size: 16px;"></i>
+                            <span id="webcamStatusText" style="color: white; font-size: 13px; font-weight: 600;">Webcam Active</span>
+                        </div>
+                    </div>
+                    <!-- Camera error overlay -->
+                    <div id="cameraErrorOverlay"
+                        style="position: absolute; inset: 0; display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 60; background: rgba(0,0,0,0.85); text-align: center; padding: 24px;">
+                        <i id="cameraErrorIcon" class="fa-solid fa-video-slash" style="font-size: 3rem; color: #f87171; margin-bottom: 16px;"></i>
+                        <h3 id="cameraErrorTitle" style="color: white; margin-bottom: 8px; font-size: 20px;">카메라 접근 실패</h3>
+                        <p id="cameraErrorDesc" style="color: rgba(255,255,255,0.7); font-size: 14px; max-width: 340px; line-height: 1.6;"></p>
+                        <button id="btnRetryCamera" style="margin-top: 20px; background: var(--intel-blue); color: white; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px;">
+                            다시 시도
+                        </button>
+                    </div>
+                    <!-- WEBCAM_CANDIDATE: Webcam loading overlay -->
+                    <div id="webcamLoadingOverlay"
+                        style="position: absolute; inset: 0; display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 55; background: rgba(0,0,0,0.7); backdrop-filter: blur(6px);">
+                        <div class="webcam-spinner"></div>
+                        <span id="webcamLoadingText">카메라 연결 중...</span>
+                    </div>
+                    <div id="stepMask"
+                        style="position: absolute; inset: 0; background: rgba(0,0,0,0); z-index: 5; transition: background 0.3s; pointer-events: none;">
+                    </div>
+                    <div id="guideOverlay"
+                        style="position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; z-index:20; text-align:center; padding:20px; transition:opacity .3s; pointer-events:none; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);">
+                        <i id="guideIcon" class="fa-solid fa-robot"
+                            style="font-size:4rem; color:var(--intel-cyan); margin-bottom:20px; text-shadow:0 0 20px rgba(0,199,253,0.5);"></i>
+                        <h2 id="guideTitle" data-i18n="hc_guide_agent_title"
+                            style="color:white; margin-bottom:12px; font-weight:700; font-size: 26px; text-shadow:0 2px 4px rgba(0,0,0,0.8);">
+                            에이전트 연결 대기 중 </h2>
+                        <p id="guideDesc" data-i18n="hc_turn_on_agent"
+                            style="color:rgba(255,255,255,0.8); max-width:420px; line-height:1.6; font-size:16px; text-shadow:0 1px 3px rgba(0,0,0,0.8);">
+                            좌측 상단의 에이전트 켜기 버튼을 눌러주세요. </p>
+                    </div>
+                    <!-- Countdown Overlay -->
+                    <div id="countdownOverlay"
+                        style="position: absolute; left: 50%; top: 40%; transform: translate(-50%, -50%); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 40; pointer-events: none;">
+                        <div id="countdownNumber"
+                            style="font-size: 160px; font-weight: 800; color: white; text-shadow: 0 0 50px var(--intel-cyan), 0 4px 20px rgba(0,0,0,0.5); line-height: 1; font-family: 'Inter', sans-serif;">
+                            3</div>
+                        <div id="countdownText" data-i18n="rom_phase_wait_pos"
+                            style="font-size: 24px; font-weight: 700; color: white; margin-top: 10px; text-shadow: 0 2px 10px rgba(0,0,0,0.8); background: rgba(0,199,253,0.2); border: 1px solid rgba(0,199,253,0.4); padding: 8px 24px; border-radius: 30px; backdrop-filter: blur(8px);">
+                            현재 자세를 유지하세요</div>
+                    </div>
+                    <!-- 3. Real-time Feedback Area -->
+                    <div class="realtime-feedback-area"
+                        style="position: absolute; bottom: 0; left: 0; right: 0; padding: 30px; display: flex; flex-direction: column; gap: 24px; z-index: 30; pointer-events: none; background: linear-gradient(0deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0) 100%);">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+                            <!-- A. Leveler -->
+                            <div class="leveler-container" id="levelerBox"
+                                style="background: rgba(11, 18, 32, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.15); border-radius: 16px; padding: 20px; width: 240px; pointer-events: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.5); display: none;">
+                                <h4
+                                    style="margin: 0 0 16px 0; font-size: 14px; color: white; display:flex; justify-content: space-between; align-items: center; font-weight: 700;">
+                                    <span>자세 균형</span><i class="fa-solid fa-scale-balanced"
+                                        style="color: var(--intel-cyan); font-size: 16px;"></i>
+                                </h4>
+                                <div class="level-item" style="margin-bottom: 16px;">
+                                    <div
+                                        style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:8px; font-weight: 600;">
+                                        <span style="color:rgba(255,255,255,0.8);">어깨
+                                            수평</span><span id="shoulderLevelText" style="color:#4ade80;">--</span>
+                                    </div>
+                                    <div class="level-bar-bg"
+                                        style="width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; position:relative;">
+                                        <div class="level-center-mark"
+                                            style="position:absolute; left:50%; top:-4px; bottom:-4px; width:2px; background:rgba(255,255,255,0.8); z-index:2; border-radius: 1px;">
+                                        </div>
+                                        <div id="shoulderLevelIndicator"
+                                            style="position:absolute; top: 50%; left:50%; width:12px; height:12px; border-radius:50%; background:rgba(255,255,255,0.3); transform:translate(-50%, -50%); transition: left 0.1s linear, background 0.3s;">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="level-item" style="margin-bottom: 16px;">
+                                    <div
+                                        style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:8px; font-weight: 600;">
+                                        <span style="color:rgba(255,255,255,0.8);">골반
+                                            수평</span><span id="pelvisLevelText" style="color:#facc15;">--</span>
+                                    </div>
+                                    <div class="level-bar-bg"
+                                        style="width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; position:relative;">
+                                        <div class="level-center-mark"
+                                            style="position:absolute; left:50%; top:-4px; bottom:-4px; width:2px; background:rgba(255,255,255,0.8); z-index:2; border-radius: 1px;">
+                                        </div>
+                                        <div id="pelvisLevelIndicator"
+                                            style="position:absolute; top: 50%; left:50%; width:12px; height:12px; border-radius:50%; background:rgba(255,255,255,0.3); transform:translate(-50%, -50%); transition: left 0.1s linear, background 0.3s;">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="level-item">
+                                    <div
+                                        style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:8px; font-weight: 600;">
+                                        <span style="color:rgba(255,255,255,0.8);">중심
+                                            정렬</span><span id="centerAlignText" style="color:#f87171;">--</span>
+                                    </div>
+                                    <div class="level-bar-bg"
+                                        style="width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; position:relative;">
+                                        <div class="level-center-mark"
+                                            style="position:absolute; left:50%; top:-4px; bottom:-4px; width:2px; background:rgba(255,255,255,0.8); z-index:2; border-radius: 1px;">
+                                        </div>
+                                        <div id="centerAlignIndicator"
+                                            style="position:absolute; top: 50%; left:50%; width:12px; height:12px; border-radius:50%; background:rgba(255,255,255,0.3); transform:translate(-50%, -50%); transition: left 0.1s linear, background 0.3s;">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- B. Message Box (Bottom Center) -->
+                        <div id="actionMessageBox"
+                            style="background: rgba(11, 18, 32, 0.8); border: 1px solid rgba(255,255,255,0.2); backdrop-filter: blur(12px); padding: 16px 32px; border-radius: 50px; text-align: center; margin: 0 auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5); pointer-events: auto; display: inline-flex; align-items: center; gap: 14px; transition: all 0.3s ease;">
+                            <i class="fa-solid fa-circle-info" id="actionMessageIcon"
+                                style="color: var(--intel-cyan); font-size: 22px;"></i><span id="actionMessageText"
+                                data-i18n="hc_turn_on_agent"
+                                style="color: white; font-size: 18px; font-weight: 700; letter-spacing: -0.5px;">에이전트를
+                                켜주세요.</span>
+                        </div>
+                        <!-- MEASURE_FLOW: Retake buttons area -->
+                        <div id="retakeArea"
+                            style="display: none; justify-content: center; gap: 12px; margin-top: 12px;">
+                            <button id="btnRetakeFront" onclick="retakeCapture('front')"
+                                style="display: none; background: rgba(245,158,11,0.2); color: #facc15; border: 1px solid rgba(245,158,11,0.5); padding: 8px 18px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer; align-items: center; gap: 8px; transition: all 0.2s;">
+                                <i class="fa-solid fa-rotate-right"></i> 정면 재촬영
+                            </button>
+                            <button id="btnRetakeSide" onclick="retakeCapture('side')"
+                                style="display: none; background: rgba(245,158,11,0.2); color: #facc15; border: 1px solid rgba(245,158,11,0.5); padding: 8px 18px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer; align-items: center; gap: 8px; transition: all 0.2s;">
+                                <i class="fa-solid fa-rotate-right"></i> 측면 재촬영
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Right -->
+            <div class="diagnostics-panel">
+                <section class="mobile-results-summary" aria-live="polite">
+                    <div class="mobile-results-header">
+                        <h3>Mobile Results Mode</h3>
+                        <span class="mobile-pill">Read Only</span>
+                    </div>
+                    <p>Measurement controls are available on desktop. On mobile, you can review latest analysis and history.</p>
+                    <div class="mobile-results-actions">
+                        <a href="/ui/history.html" class="mobile-action-link">
+                            <i class="fa-solid fa-clock-rotate-left"></i>
+                            <span>History</span>
+                        </a>
+                        <a href="/ui/mobilityreport.html" class="mobile-action-link">
+                            <i class="fa-solid fa-chart-simple"></i>
+                            <span>Analysis</span>
+                        </a>
+                    </div>
+                </section>
+                <!-- Body Check -->
+                <div class="tab-content active" id="tab-body-check">
+                    <div class="grid-card diag-card">
+                        <div class="card-header">
+                            <h2 data-i18n="hc_rom_list_title">Body Check Results</h2><i
+                                class="fa-solid fa-list-check icon-faded"></i>
+                        </div>
+                        <div class="analysis-list" id="analysisList"></div>
+                    </div>
+                    <div class="grid-card terminal-card">
+                        <div class="terminal-header"><span data-i18n="hc_term">Terminal Output</span>
+                            <div class="dots"><span class="dot red"></span><span class="dot yellow"></span><span
+                                    class="dot green"></span></div>
+                        </div>
+                        <pre class="terminal-body" id="status"
+                            style="white-space: pre-wrap; font-family:'Share Tech Mono', monospace; font-size:0.9rem; margin:0; padding:1.5rem; color:#a3e635; overflow-y:auto;">>System initialized.>Waiting for user input...</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    <!-- Completion Modal -->
+    <div id="completionModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <i class="fa-solid fa-circle-check"></i>
+                <h2 data-i18n="hc_modal_title">측정 완료</h2>
+            </div>
+            <p id="modalMessage" data-i18n="hc_modal_msg">측정이 성공적으로 완료되었습니다.</p>
+            <div class="modal-actions">
+                <button id="btnViewReport" class="modal-btn primary" data-i18n="hc_modal_report">리포트 확인</button>
+                <button id="btnCloseModal" class="modal-btn secondary" data-i18n="hc_modal_close">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/settings.js"></script>
+    <script src="/ui/audio-manager.js"></script>
+    <script src="/ui/lib/api.js"></script>
+    <script src="/ui/health-check.js?v=7"></script>
+</body>
+
+</html>

@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>3D Mesh Viewer - BodumCare</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://healthcare-web-seven.vercel.app/dashboard.css?v=3">
+    <link rel="stylesheet" href="/ui/sidebar.css?v=1" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        .mesh-viewer-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+            min-height: 600px;
+            background: #0b1220;
+        }
+
+        #meshCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .viewer-controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        .status-badge {
+            background: rgba(11, 18, 32, 0.88);
+            border: 1px solid rgba(125, 211, 252, 0.28);
+            border-radius: 999px;
+            color: #dbeafe;
+            padding: 10px 14px;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            width: fit-content;
+            backdrop-filter: blur(10px);
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #64748b;
+            box-shadow: 0 0 12px rgba(100, 116, 139, 0.45);
+        }
+
+        .status-badge.preview .status-dot {
+            background: #22c55e;
+            box-shadow: 0 0 12px rgba(34, 197, 94, 0.5);
+        }
+
+        .status-badge.mesh .status-dot {
+            background: #38bdf8;
+            box-shadow: 0 0 12px rgba(56, 189, 248, 0.5);
+        }
+
+        .status-badge.idle .status-dot {
+            background: #94a3b8;
+        }
+
+        .control-panel,
+        .mesh-info,
+        .error-log {
+            background: rgba(11, 18, 32, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        .control-panel {
+            min-width: 220px;
+        }
+
+        .panel-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .panel-title i {
+            color: var(--intel-cyan);
+        }
+
+        .control-btn {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.06);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .control-select {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.06);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .control-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .control-btn.primary {
+            background: var(--intel-blue);
+            border-color: rgba(0, 113, 197, 0.4);
+            box-shadow: 0 0 15px rgba(0, 113, 197, 0.4);
+        }
+
+        .control-btn.danger {
+            background: rgba(239, 68, 68, 0.15);
+            border-color: rgba(239, 68, 68, 0.4);
+            color: #f87171;
+        }
+
+        .control-btn.success {
+            background: rgba(34, 197, 94, 0.15);
+            border-color: rgba(34, 197, 94, 0.4);
+            color: #4ade80;
+        }
+
+        .status-info {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+
+        .status-label {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .status-value {
+            font-weight: 600;
+            color: white;
+        }
+
+        .mesh-info {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            z-index: 100;
+            min-width: 200px;
+            display: none;
+        }
+
+        .mesh-info.visible {
+            display: block;
+        }
+
+        .error-log {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: min(360px, calc(100vw - 40px));
+            border-color: rgba(248, 113, 113, 0.35);
+            display: none;
+            z-index: 100;
+        }
+
+        .error-log.visible {
+            display: block;
+        }
+
+        .error-log-title {
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: #fca5a5;
+        }
+
+        .error-log-body {
+            font-size: 12px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            color: rgba(255, 255, 255, 0.86);
+        }
+
+        .right-controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        .view-btn {
+            background: rgba(255, 255, 255, 0.06);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            width: 44px;
+            height: 44px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .view-btn:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .loading-overlay,
+        .countdown-overlay {
+            position: absolute;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+        }
+
+        .loading-overlay {
+            background: rgba(0, 0, 0, 0.8);
+            flex-direction: column;
+            pointer-events: auto;
+        }
+
+        .countdown-overlay {
+            background: rgba(2, 6, 23, 0.72);
+            backdrop-filter: blur(6px);
+            z-index: 210;
+        }
+
+        .loading-overlay.visible,
+        .countdown-overlay.visible {
+            display: flex;
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-top-color: var(--intel-cyan);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            margin-top: 20px;
+        }
+
+        .countdown-content {
+            text-align: center;
+            color: white;
+        }
+
+        .countdown-value {
+            font-size: 96px;
+            font-weight: 800;
+            line-height: 1;
+            text-shadow: 0 0 30px rgba(56, 189, 248, 0.28);
+        }
+
+        .countdown-label {
+            margin-top: 12px;
+            font-size: 16px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.82);
+        }
+    </style>
+</head>
+<body>
+    <div class="background-effects">
+        <div class="glow glow-1"></div>
+        <div class="glow glow-2"></div>
+        <div class="glow glow-3"></div>
+    </div>
+
+    <aside class="sidebar">
+        <div class="brand-header">
+            <div class="logo-icon">
+                <img src="/logo.svg" alt="BodyCheck 로고" style="width: 100%; height: 100%; object-fit: contain;">
+            </div>
+            <span class="brand-text">BodyCheck</span>
+        </div>
+        <nav class="nav-menu">
+            <a href="/dashboard.html" class="nav-item">
+                <i class="fa-solid fa-chart-pie"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="/ui/health-check.html" class="nav-item">
+                <i class="fa-solid fa-heart-pulse"></i>
+                <span>Health Check</span>
+            </a>
+            <a href="/ui/3d-viewer.html" class="nav-item active">
+                <i class="fa-solid fa-cube"></i>
+                <span>3D Mesh Viewer</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-controls" style="margin-top: auto; padding: 0 16px 16px; display: flex; gap: 10px; justify-content: center;">
+            <button id="themeToggleBtn" class="icon-btn" aria-label="Toggle Theme" style="background: rgba(255,255,255,0.05); color: var(--text-secondary); border: 1px solid rgba(255,255,255,0.1); width: 36px; height: 36px; border-radius: 50%; cursor: pointer; transition: all 0.2s;">
+                <i class="fa-solid fa-moon"></i>
+            </button>
+            <button id="langToggleBtn" class="icon-btn" aria-label="Toggle Language" style="background: rgba(255,255,255,0.05); color: var(--text-secondary); border: 1px solid rgba(255,255,255,0.1); width: 36px; height: 36px; border-radius: 50%; cursor: pointer; transition: all 0.2s; font-weight: 600; font-size: 12px;">
+                KO
+            </button>
+        </div>
+
+        <div class="user-profile">
+            <div class="avatar">
+                <img src="https://ui-avatars.com/api/?name=Alex+Doe&background=0071C5&color=fff&size=100" alt="User Profile">
+            </div>
+            <div class="user-info">
+                <h4 id="user-display-email">Alex Doe</h4>
+                <p>Standard Plan</p>
+            </div>
+            <button class="logout-btn" aria-label="Logout" onclick="window.location.href='/index.html'">
+                <i class="fa-solid fa-arrow-right-from-bracket"></i>
+            </button>
+        </div>
+    </aside>
+
+    <main class="dashboard-main">
+        <div class="check-grid">
+            <div class="mesh-viewer-container grid-card">
+                <canvas id="meshCanvas"></canvas>
+
+                <div class="loading-overlay" id="loadingOverlay">
+                    <div class="spinner"></div>
+                    <div class="loading-text" id="loadingText">로딩 중...</div>
+                </div>
+
+                <div class="countdown-overlay" id="countdownOverlay">
+                    <div class="countdown-content">
+                        <div class="countdown-value" id="countdownValue">5</div>
+                        <div class="countdown-label" id="countdownLabel">Capture starts soon</div>
+                    </div>
+                </div>
+
+                <div class="viewer-controls">
+                    <div class="status-badge idle" id="renderStateBadge">
+                        <span class="status-dot"></span>
+                        <span id="renderStateText">Idle</span>
+                    </div>
+
+                    <div class="control-panel">
+                        <div class="panel-title">
+                            <i class="fa-solid fa-video"></i>
+                            <span>캡처 제어</span>
+                        </div>
+                        <button class="control-btn primary" id="btnStartCapture">
+                            <i class="fa-solid fa-play"></i>
+                            <span>캡처 시작</span>
+                        </button>
+                        <button class="control-btn danger" id="btnStopCapture" disabled>
+                            <i class="fa-solid fa-stop"></i>
+                            <span>캡처 정지</span>
+                        </button>
+                        <button class="control-btn success" id="btnLoadPLY" disabled>
+                            <i class="fa-solid fa-cube"></i>
+                            <span>PLY 로드</span>
+                        </button>
+                        <select id="glbFileSelect" class="control-select">
+                            <option value="">GLB Model</option>
+                        </select>
+                        <button class="control-btn" id="btnLoadGLB">
+                            <i class="fa-solid fa-upload"></i>
+                            <span>GLB Load</span>
+                        </button>
+                        <button class="control-btn" id="btnDownload" disabled>
+                            <i class="fa-solid fa-download"></i>
+                            <span>다운로드</span>
+                        </button>
+                        <div class="status-info">
+                            <div class="status-item">
+                                <span class="status-label">상태:</span>
+                                <span class="status-value" id="captureStatus">대기 중</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">프레임:</span>
+                                <span class="status-value" id="frameCount">0</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">시간:</span>
+                                <span class="status-value" id="captureTime">0.0s</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mesh-info" id="meshInfo">
+                    <div class="panel-title">
+                        <i class="fa-solid fa-info-circle"></i>
+                        <span>메쉬 정보</span>
+                    </div>
+                    <div class="status-info">
+                        <div class="status-item">
+                            <span class="status-label">정점:</span>
+                            <span class="status-value" id="vertexCount">-</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">면:</span>
+                            <span class="status-value" id="faceCount">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="error-log" id="errorLog">
+                    <div class="error-log-title">Mesh Diagnostics</div>
+                    <div class="error-log-body" id="errorLogBody"></div>
+                </div>
+
+                <div class="right-controls">
+                    <button class="view-btn" id="btnViewFront" title="정면">
+                        <i class="fa-solid fa-user"></i>
+                    </button>
+                    <button class="view-btn" id="btnViewSide" title="측면">
+                        <i class="fa-solid fa-user-tag"></i>
+                    </button>
+                    <button class="view-btn" id="btnViewTop" title="상면">
+                        <i class="fa-solid fa-arrow-up"></i>
+                    </button>
+                    <button class="view-btn" id="btnResetView" title="초기화">
+                        <i class="fa-solid fa-rotate-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="/ui/sidebar.js" defer></script>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+    <script src="/ui/3d-viewer.js" type="module"></script>
+</body>
+</html>

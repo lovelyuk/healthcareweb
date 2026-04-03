@@ -1,0 +1,1720 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title data-i18n="hc_title">Health Check - BodumCare</title>
+    <meta name="description" content="Live posture and health check using Intel RealSense + MediaPipe overlay" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Share+Tech+Mono&display=swap"
+        rel="stylesheet">
+
+    <link rel="stylesheet" href="https://healthcare-web-seven.vercel.app/dashboard.css?v=3">
+    <link rel="stylesheet" href="/ui/health-check.css?v=20260307_overlay">
+    <link rel="stylesheet" href="https://healthcare-web-seven.vercel.app/settings.css">
+    <link rel="stylesheet" href="/ui/sidebar.css?v=1" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        .feed-window {
+            position: relative;
+            overflow: hidden;
+        }
+
+        #photo {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            max-width: 100%;
+            max-height: 100%;
+            margin: 0 auto;
+            display: block;
+            border-radius: 12px;
+            position: relative;
+            z-index: 1;
+            background: #0b1220;
+        }
+
+        #overlayCanvas {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 12;
+            pointer-events: none;
+        }
+
+        .analysis-toolbar {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .analysis-toolbar select,
+        .analysis-toolbar button {
+            background: rgba(255, 255, 255, 0.06);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .analysis-toolbar select {
+            min-width: 180px;
+        }
+
+        .analysis-toolbar button {
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .analysis-toolbar button:hover {
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        .mini-status {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .mini-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 600;
+            color: white;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .mini-pill.good {
+            border-color: rgba(34, 197, 94, 0.35);
+            background: rgba(34, 197, 94, 0.12);
+        }
+
+        .mini-pill.warn {
+            border-color: rgba(245, 158, 11, 0.35);
+            background: rgba(245, 158, 11, 0.12);
+        }
+
+        .mini-pill.bad {
+            border-color: rgba(239, 68, 68, 0.35);
+            background: rgba(239, 68, 68, 0.12);
+        }
+
+        .analysis-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 520px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .analysis-item {
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .analysis-item:hover {
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .analysis-item.active {
+            border-color: rgba(0, 199, 253, 0.45);
+            box-shadow: 0 0 0 1px rgba(0, 199, 253, 0.15) inset;
+            background: rgba(0, 199, 253, 0.08);
+        }
+
+        .analysis-top {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 8px;
+            align-items: center;
+        }
+
+        .analysis-name {
+            font-weight: 700;
+            color: white;
+            font-size: 14px;
+        }
+
+        .analysis-badge {
+            font-size: 11px;
+            font-weight: 700;
+            border-radius: 999px;
+            padding: 4px 8px;
+            color: white;
+            background: rgba(255, 255, 255, 0.10);
+            white-space: nowrap;
+        }
+
+        .analysis-meta {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .analysis-summary {
+            font-size: 12px;
+            line-height: 1.5;
+            color: #cbd5e1;
+        }
+
+        .quality-box {
+            margin-top: 14px;
+            padding: 12px 14px;
+            border-radius: 12px;
+            background: rgba(0, 199, 253, 0.08);
+            border: 1px solid rgba(0, 199, 253, 0.18);
+            color: white;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .anthro-ai-summary-card {
+            min-height: 170px;
+        }
+
+        .anthro-ai-summary-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 14px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #dbeafe;
+            background: rgba(59, 130, 246, 0.14);
+            border: 1px solid rgba(96, 165, 250, 0.24);
+        }
+
+        .anthro-ai-summary-status.error {
+            color: #fecaca;
+            background: rgba(239, 68, 68, 0.14);
+            border-color: rgba(248, 113, 113, 0.28);
+        }
+
+        .anthro-ai-summary-loading {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #cbd5e1;
+            font-size: 14px;
+            margin-bottom: 14px;
+        }
+
+        .anthro-ai-summary-content {
+            color: #e2e8f0;
+            font-size: 14px;
+            line-height: 1.75;
+            white-space: pre-wrap;
+        }
+
+        .anthro-ai-summary-content.error {
+            color: #fca5a5;
+        }
+
+        .anthro-metric-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        /* Anthro card — base */
+        .anthro-metric-card {
+            padding: 18px 20px 14px;
+            border-radius: 14px;
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid rgba(148, 163, 184, 0.12);
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            opacity: 0;
+            transform: translateY(8px);
+            animation: anthroCardFadeIn 0.45s ease forwards;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .anthro-metric-card:hover {
+            border-color: rgba(148, 163, 184, 0.25);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+        }
+
+        @keyframes anthroCardFadeIn {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Card top row */
+        .anthro-card-top {
+            display: flex;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+        .anthro-card-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: #94a3b8;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        /* Primary value */
+        .anthro-card-value {
+            font-size: 30px;
+            font-weight: 800;
+            line-height: 1;
+            letter-spacing: -0.02em;
+            margin-bottom: 2px;
+        }
+        .anthro-unit {
+            font-size: 13px;
+            font-weight: 500;
+            opacity: 0.65;
+            margin-left: 2px;
+        }
+
+        /* Source caption */
+        .anthro-card-source {
+            font-size: 10px;
+            color: #475569;
+            margin-bottom: 10px;
+            letter-spacing: 0.02em;
+        }
+
+        /* Range indicator bar */
+        .anthro-range-bar {
+            position: relative;
+            margin-bottom: 6px;
+        }
+        .anthro-range-zones {
+            display: flex;
+            height: 6px;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .anthro-zone {
+            height: 100%;
+        }
+        .zone-low   { flex: 0 0 20%; background: rgba(96, 165, 250, 0.75); }
+        .zone-normal{ flex: 0 0 60%; background: rgba(52, 211, 153, 0.75); }
+        .zone-high  { flex: 0 0 20%; background: rgba(251, 146, 60, 0.75); }
+
+        /* Pointer dot on bar */
+        .anthro-range-pointer {
+            position: absolute;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #f8fafc;
+            border: 2px solid rgba(15, 23, 42, 0.9);
+            box-shadow: 0 0 6px rgba(255, 255, 255, 0.4);
+            transition: left 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        /* Range labels row */
+        .anthro-range-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 3px;
+            font-size: 9px;
+            color: #475569;
+        }
+        .anthro-avg-label {
+            color: #64748b;
+            font-weight: 600;
+        }
+
+        /* Deviation text */
+        .anthro-deviation {
+            font-size: 10px;
+            color: #64748b;
+            margin-top: 5px;
+            letter-spacing: 0.01em;
+        }
+
+        /* Normal range note */
+        .anthro-range-note {
+            font-size: 9px;
+            color: #334155;
+            margin-top: 2px;
+        }
+
+        @media (max-width: 1024px) {
+            .anthro-metric-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 640px) {
+            .anthro-metric-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* NEW REDESIGN STYLES */
+        .report-section {
+            margin-bottom: 30px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 24px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 800;
+            margin-bottom: 20px;
+            color: var(--intel-cyan);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid rgba(0, 199, 253, 0.2);
+            padding-bottom: 10px;
+        }
+
+        .metric-slider-bar {
+            height: 8px;
+            border-radius: 4px;
+            background: linear-gradient(to right,
+                    #ef4444 0%, #ef4444 15%,
+                    #facc15 15%, #facc15 35%,
+                    #22c55e 35%, #22c55e 65%,
+                    #facc15 65%, #facc15 85%,
+                    #ef4444 85%, #ef4444 100%);
+            width: 100%;
+            position: relative;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .metric-slider-pointer {
+            position: absolute;
+            top: -8px;
+            width: 0;
+            height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-top: 8px solid #fff;
+            filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.5));
+            transform: translateX(-50%);
+            transition: left 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+            z-index: 5;
+        }
+
+        .metric-slider-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 9px;
+            color: rgba(255, 255, 255, 0.3);
+            margin-top: 4px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        .visual-analysis-row {
+            display: flex;
+            gap: 24px;
+            align-items: center;
+            /* Centered vertically */
+        }
+
+        .visual-img-container {
+            flex: 0 0 40%;
+            /* Reduced space for image */
+            max-width: 400px;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #000;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .visual-img-container img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .visual-metrics-container {
+            flex: 1;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            padding: 12px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: 100%;
+        }
+
+        .metric-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .metric-label {
+            font-size: 11px;
+            color: #94a3b8;
+            font-weight: 500;
+        }
+
+        .metric-name {
+            font-size: 14px;
+            font-weight: 700;
+            color: white;
+        }
+
+        .metric-slider-container {
+            width: 100%;
+            position: relative;
+            padding-top: 25px;
+            /* More space for pointer and label */
+        }
+
+        .metric-slider-pointer {
+            position: absolute;
+            top: 15px;
+            width: 0;
+            height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-top: 8px solid #fff;
+            filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.5));
+            transform: translateX(-50%);
+            transition: left 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+            z-index: 5;
+        }
+
+        .pointer-label {
+            position: absolute;
+            top: -24px;
+            left: 50%;
+            transform: translateX(-50%);
+            white-space: nowrap;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(4px);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--intel-cyan);
+            border: 1px solid rgba(0, 199, 253, 0.2);
+            pointer-events: none;
+        }
+
+        .metric-values {
+            display: none;
+            /* Value moved to slider pointer labels */
+        }
+
+        .metric-val {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--intel-cyan);
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        .metric-grade {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        /* Posture Grid Integration */
+        .posture-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+
+        .posture-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .posture-img-box {
+            flex: 0 0 80px;
+            height: 80px;
+            border-radius: 8px;
+            overflow: hidden;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .posture-card-img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .posture-card-info {
+            flex: 1;
+        }
+
+        .posture-card-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 4px;
+        }
+
+        .posture-card-grade {
+            font-size: 11px;
+            font-weight: 700;
+            display: inline-block;
+            margin-bottom: 6px;
+        }
+
+        .posture-card-desc {
+            font-size: 11px;
+            color: #94a3b8;
+            line-height: 1.4;
+        }
+
+        .grade-normal {
+            color: #34d399;
+        }
+
+        .grade-mild {
+            color: #fbbf24;
+        }
+
+        .grade-moderate {
+            color: #f87171;
+        }
+
+        /* 4-View Grid */
+        .multi-view-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 12px;
+            min-height: 560px;
+        }
+        .multi-view-cell {
+            position: relative;
+            background: #08111f;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.08);
+            min-height: 260px;
+        }
+        .view-label {
+            position: absolute;
+            top: 8px;
+            left: 10px;
+            font-size: 11px;
+            font-weight: 700;
+            color: rgba(255,255,255,0.45);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            z-index: 4;
+            pointer-events: none;
+        }
+        .multi-view-canvas {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+            opacity: 0;
+            z-index: 1;
+        }
+        .multi-view-image {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+            background: #08111f;
+            z-index: 2;
+        }
+        .snapshot-status {
+            position: absolute;
+            inset: 0;
+            z-index: 3;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            gap: 4px;
+            color: #cbd5e1;
+            background: rgba(8, 17, 31, 0.78);
+            font-size: 12px;
+            line-height: 1.4;
+            padding: 14px;
+        }
+        .snapshot-status.loading .snapshot-status-primary {
+            color: #e2e8f0;
+        }
+        .snapshot-status.error .snapshot-status-primary {
+            color: #fca5a5;
+            font-weight: 700;
+        }
+        .snapshot-status-secondary {
+            color: #94a3b8;
+        }
+        /* Skeleton Legend */
+        .skeleton-legend {
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(255,255,255,0.08);
+        }
+        .legend-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: rgba(255,255,255,0.5);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 12px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: #94a3b8;
+            margin-bottom: 8px;
+        }
+        .legend-swatch {
+            width: 24px;
+            height: 3px;
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+        .legend-base { background: #60a5fa; }
+        .legend-measured { background: #fb923c; }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* AI Overview Card */
+        .ai-overview-score-row {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            margin-bottom: 16px;
+        }
+
+        .ai-overview-score-circle {
+            flex: 0 0 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: conic-gradient(
+                var(--intel-cyan) calc(var(--score) * 1%),
+                rgba(255,255,255,0.08) calc(var(--score) * 1%)
+            );
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .ai-overview-score-circle::before {
+            content: '';
+            position: absolute;
+            inset: 8px;
+            border-radius: 50%;
+            background: #0b1220;
+        }
+
+        .ai-overview-score-value {
+            position: relative;
+            z-index: 1;
+            font-size: 28px;
+            font-weight: 800;
+            color: #f8fafc;
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        .ai-overview-score-label {
+            position: relative;
+            z-index: 1;
+            font-size: 11px;
+            color: #94a3b8;
+            margin-top: 2px;
+        }
+
+        .ai-overview-meta {
+            flex: 1;
+        }
+
+        .ai-overview-status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .ai-overview-status-badge.status-normal {
+            background: rgba(34, 197, 94, 0.15);
+            border: 1px solid rgba(34, 197, 94, 0.35);
+            color: #4ade80;
+        }
+
+        .ai-overview-status-badge.status-caution {
+            background: rgba(250, 204, 21, 0.15);
+            border: 1px solid rgba(250, 204, 21, 0.35);
+            color: #facc15;
+        }
+
+        .ai-overview-status-badge.status-warning {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.35);
+            color: #f87171;
+        }
+
+        .ai-overview-summary {
+            font-size: 14px;
+            color: #cbd5e1;
+            line-height: 1.6;
+            margin-bottom: 6px;
+        }
+
+        .ai-overview-interpretation {
+            font-size: 13px;
+            color: #94a3b8;
+            line-height: 1.5;
+        }
+
+        /* Posture Analysis */
+        .posture-analysis-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .posture-analysis-item {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 10px;
+            padding: 14px 16px;
+        }
+
+        .posture-analysis-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 6px;
+        }
+
+        .posture-analysis-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #f8fafc;
+            font-family: 'Share Tech Mono', monospace;
+            margin-bottom: 6px;
+        }
+
+        .posture-analysis-interpretation {
+            font-size: 12px;
+            color: #94a3b8;
+            line-height: 1.4;
+        }
+
+        /* Problem Points */
+        .problem-points-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .problem-point-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            padding: 14px 16px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 12px;
+            transition: all 0.2s;
+        }
+
+        .problem-point-item:hover {
+            background: rgba(255,255,255,0.05);
+        }
+
+        .problem-point-icon {
+            flex: 0 0 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .problem-point-icon.icon-normal {
+            background: rgba(34, 197, 94, 0.15);
+            color: #4ade80;
+        }
+
+        .problem-point-icon.icon-mild {
+            background: rgba(250, 204, 21, 0.15);
+            color: #facc15;
+        }
+
+        .problem-point-icon.icon-caution {
+            background: rgba(251, 146, 60, 0.15);
+            color: #fb923c;
+        }
+
+        .problem-point-icon.icon-warning {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+        }
+
+        .problem-point-body {
+            flex: 1;
+        }
+
+        .problem-point-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 4px;
+        }
+
+        .problem-point-name {
+            font-size: 14px;
+            font-weight: 700;
+            color: #f8fafc;
+        }
+
+        .problem-point-status {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 999px;
+        }
+
+        .problem-point-status.status-normal {
+            background: rgba(34, 197, 94, 0.2);
+            color: #4ade80;
+        }
+
+        .problem-point-status.status-mild {
+            background: rgba(250, 204, 21, 0.2);
+            color: #facc15;
+        }
+
+        .problem-point-status.status-caution {
+            background: rgba(251, 146, 60, 0.2);
+            color: #fb923c;
+        }
+
+        .problem-point-status.status-warning {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+        }
+
+        .problem-point-confidence {
+            font-size: 11px;
+            color: #64748b;
+            font-weight: 600;
+        }
+
+        .problem-point-description {
+            font-size: 12px;
+            color: #94a3b8;
+            line-height: 1.4;
+        }
+
+        /* Recommendations */
+        .recommendations-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .recommendation-card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 12px;
+            padding: 16px;
+            transition: all 0.2s;
+        }
+
+        .recommendation-card:hover {
+            background: rgba(255,255,255,0.06);
+            border-color: rgba(0, 199, 253, 0.25);
+        }
+
+        .recommendation-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .recommendation-icon {
+            flex: 0 0 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: rgba(0, 199, 253, 0.12);
+            color: var(--intel-cyan);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+        }
+
+        .recommendation-title {
+            flex: 1;
+            font-size: 13px;
+            font-weight: 700;
+            color: #f8fafc;
+            line-height: 1.3;
+        }
+
+        .recommendation-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+        }
+
+        .recommendation-tag {
+            font-size: 10px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: rgba(0, 199, 253, 0.1);
+            color: var(--intel-cyan);
+            border: 1px solid rgba(0, 199, 253, 0.2);
+        }
+
+        .recommendation-duration {
+            font-size: 10px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: rgba(251, 146, 60, 0.1);
+            color: #fb923c;
+            border: 1px solid rgba(251, 146, 60, 0.2);
+        }
+
+        .recommendation-description {
+            font-size: 12px;
+            color: #94a3b8;
+            line-height: 1.4;
+        }
+
+        /* Progress Tracking */
+        .progress-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .progress-score-card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .progress-score-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 6px;
+        }
+
+        .progress-score-value {
+            font-size: 32px;
+            font-weight: 800;
+            color: #f8fafc;
+            font-family: 'Share Tech Mono', monospace;
+            line-height: 1;
+            margin-bottom: 4px;
+        }
+
+        .progress-score-date {
+            font-size: 11px;
+            color: #64748b;
+        }
+
+        .progress-score-change {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 13px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 999px;
+            margin-top: 6px;
+        }
+
+        .progress-score-change.positive {
+            background: rgba(34, 197, 94, 0.15);
+            color: #4ade80;
+        }
+
+        .progress-score-change.negative {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+        }
+
+        .progress-score-change.neutral {
+            background: rgba(148, 163, 184, 0.15);
+            color: #94a3b8;
+        }
+
+        .progress-details {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .progress-detail-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 8px;
+        }
+
+        .progress-detail-label {
+            font-size: 12px;
+            color: #94a3b8;
+            font-weight: 500;
+        }
+
+        .progress-detail-value {
+            font-size: 12px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .progress-detail-value.improved {
+            color: #4ade80;
+        }
+
+        .progress-detail-value.worsened {
+            color: #f87171;
+        }
+
+        .progress-detail-value.unchanged {
+            color: #94a3b8;
+        }
+
+        /* Empty state */
+        .progress-empty-state {
+            text-align: center;
+            padding: 32px 16px;
+            color: #64748b;
+        }
+
+        .progress-empty-state i {
+            font-size: 32px;
+            margin-bottom: 12px;
+            opacity: 0.5;
+        }
+
+        .progress-empty-state p {
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        /* Loading shimmer */
+        .ai-loading-shimmer {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .shimmer-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .shimmer-circle {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            flex-shrink: 0;
+        }
+
+        .shimmer-block {
+            height: 16px;
+            border-radius: 6px;
+            background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+
+        .shimmer-block.w-60 { width: 60%; }
+        .shimmer-block.w-80 { width: 80%; }
+        .shimmer-block.w-40 { width: 40%; }
+        .shimmer-block.w-100 { width: 100%; }
+
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* Error state */
+        .ai-error-state {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 16px;
+            background: rgba(239, 68, 68, 0.08);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            border-radius: 10px;
+            color: #f87171;
+            font-size: 13px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .posture-analysis-grid {
+                grid-template-columns: 1fr;
+            }
+            .recommendations-grid {
+                grid-template-columns: 1fr;
+            }
+            .progress-comparison {
+                grid-template-columns: 1fr;
+            }
+            .ai-overview-score-row {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .lifestyle-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Lifestyle Guidance */
+        .lifestyle-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+
+        .lifestyle-cat-card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .lifestyle-cat-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 16px;
+            font-size: 13px;
+            font-weight: 700;
+            background: rgba(255,255,255,0.04);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+
+        .lifestyle-cat-header i {
+            font-size: 14px;
+        }
+
+        .lifestyle-items {
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .lifestyle-item {
+            padding: 10px 12px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .lifestyle-item:hover {
+            background: rgba(255,255,255,0.06);
+            border-color: rgba(255,255,255,0.12);
+        }
+
+        .lifestyle-item-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 5px;
+        }
+
+        .lifestyle-item-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: #f1f5f9;
+            line-height: 1.3;
+        }
+
+        .lifestyle-item-desc {
+            font-size: 11px;
+            color: #94a3b8;
+            line-height: 1.4;
+            margin-bottom: 4px;
+        }
+
+        .lifestyle-item-meta,
+        .lifestyle-item-issue {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 10px;
+            color: #64748b;
+            margin-top: 3px;
+        }
+
+        .lifestyle-item-meta i,
+        .lifestyle-item-issue i {
+            font-size: 9px;
+        }
+
+        .lifestyle-item-issue {
+            color: var(--intel-cyan);
+            opacity: 0.7;
+        }
+
+        .sev-badge {
+            font-size: 9px;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 999px;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .sev-warn {
+            background: rgba(251, 146, 60, 0.15);
+            color: #fb923c;
+            border: 1px solid rgba(251, 146, 60, 0.25);
+        }
+
+        .sev-opt {
+            background: rgba(0, 199, 253, 0.12);
+            color: var(--intel-cyan);
+            border: 1px solid rgba(0, 199, 253, 0.2);
+        }
+
+        .sev-base {
+            background: rgba(148, 163, 184, 0.1);
+            color: #94a3b8;
+            border: 1px solid rgba(148, 163, 184, 0.15);
+        }
+
+        .lifestyle-empty {
+            text-align: center;
+            color: #475569;
+            font-size: 12px;
+            padding: 8px 0;
+        }
+        @media (max-width: 768px) {
+            .posture-analysis-grid {
+                grid-template-columns: 1fr;
+            }
+            .recommendations-grid {
+                grid-template-columns: 1fr;
+            }
+            .progress-comparison {
+                grid-template-columns: 1fr;
+            }
+            .ai-overview-score-row {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="/ui/sidebar.css?v=1" />
+    <script src="/ui/user-context.js" defer></script>
+    <script src="/ui/sidebar.js" defer></script>
+</head>
+
+<body>
+    <div class="background-effects">
+        <div class="glow glow-1"></div>
+        <div class="glow glow-2"></div>
+        <div class="glow glow-3"></div>
+    </div>
+    <aside class="sidebar">
+        <div class="brand-header">
+            <div class="logo-icon">
+                <img src="/logo.svg" alt="보둠케어 로고" style="width: 100%; height: 100%; object-fit: contain;">
+            </div>
+            <span class="brand-text" data-i18n="brand_name">보둠케어</span>
+        </div>
+        <nav class="nav-menu">
+            <a href="/dashboard.html" class="nav-item">
+                <i class="fa-solid fa-chart-pie"></i>
+                <span data-i18n="nav_dash">Dashboard</span>
+            </a>
+            <a href="/statistics.html" class="nav-item">
+                <i class="fa-solid fa-chart-line"></i>
+                <span data-i18n="nav_stats">Statistics</span>
+            </a>
+
+            <div class="nav-item has-dropdown">
+                <div class="dropdown-trigger">
+                    <i class="fa-solid fa-heart-pulse"></i>
+                    <span data-i18n="nav_health">Health Check</span>
+                    <i class="fa-solid fa-chevron-down chevron"></i>
+                </div>
+                <div class="submenu">
+                    <a href="/ui/health-check.html" class="submenu-item" data-i18n="nav_bodycheck">bodycheck</a>
+                    <a href="/ui/anthropometry.html" class="submenu-item"
+                        data-i18n="nav_anthropometry">anthropometry</a>
+                    <a href="/ui/rom.html" class="submenu-item" data-i18n="nav_rom">rom</a>
+                    <a href="/ui/mobilityreport.html" class="submenu-item" data-i18n="nav_mobility">ROM Report</a>
+                    <a href="/ui/movement.html" class="submenu-item" data-i18n="nav_movement">Performance Analysis</a>
+                    <a href="/ui/performancereport.html" class="submenu-item" data-i18n="nav_perf">performancereport</a>
+                    <a href="/ui/history.html" class="submenu-item" data-i18n="nav_history">history</a>
+                </div>
+            </div>
+
+            <a href="/prescription.html" class="nav-item">
+                <i class="fa-solid fa-prescription-bottle-medical"></i>
+                <span data-i18n="nav_presc">Prescriptions</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-controls"
+            style="margin-top: auto; padding: 0 16px 16px; display: flex; gap: 10px; justify-content: center;">
+            <button id="themeToggleBtn" class="icon-btn" aria-label="Toggle Theme"
+                style="background: rgba(255,255,255,0.05); color: var(--text-secondary); border: 1px solid rgba(255,255,255,0.1); width: 36px; height: 36px; border-radius: 50%; cursor: pointer; transition: all 0.2s;">
+                <i class="fa-solid fa-moon"></i>
+            </button>
+            <button id="langToggleBtn" class="icon-btn" aria-label="Toggle Language"
+                style="background: rgba(255,255,255,0.05); color: var(--text-secondary); border: 1px solid rgba(255,255,255,0.1); width: 36px; height: 36px; border-radius: 50%; cursor: pointer; transition: all 0.2s; font-weight: 600; font-size: 12px;">
+                KO
+            </button>
+        </div>
+
+        <div class="user-profile">
+            <div class="avatar">
+                <img src="https://ui-avatars.com/api/?name=Alex+Doe&background=0071C5&color=fff&size=100"
+                    alt="User Profile">
+            </div>
+            <div class="user-info">
+                <h4 id="user-display-email">Alex Doe</h4>
+                <p data-i18n="nav_plan">Standard Plan</p>
+            </div>
+            <button class="logout-btn" aria-label="Logout" onclick="window.location.href='/index.html'">
+                <i class="fa-solid fa-arrow-right-from-bracket"></i>
+            </button>
+        </div>
+    </aside>
+    <main class="dashboard-main">
+        <div class="check-grid">
+            <div class="diagnostics-panel" style="grid-column: 1 / -1;">
+                <!-- Anthropometry Content -->
+                <div class="tab-content active" id="tab-anthro">
+                    <!-- Standard View (Initially visible) -->
+                    <div id="anthroStandardView" class="category-tabs-container">
+                        <div class="grid-card diag-card detailed-card">
+                            <div class="card-header">
+                                <h2 data-i18n="nav_anthropometry">Anthropometry</h2><i
+                                    class="fa-solid fa-ruler-combined icon-faded"></i>
+                            </div>
+                            <div class="live-data scrollable-data">
+                                <div class="data-row"><span data-i18n="anthro_height">Height</span><span
+                                        class="mono-value" id="mini_height">--
+                                        cm</span></div>
+                                <div class="data-row"><span data-i18n="anthro_shoulder">Shoulder Width</span><span
+                                        class="mono-value" id="mini_shoulder_width">-- cm</span></div>
+                                <div class="data-row"><span data-i18n="anthro_pelvis">Pelvis Width</span><span
+                                        class="mono-value" id="mini_pelvis_width">-- cm</span></div>
+                                <div class="data-row"><span data-i18n="anthro_arm">Arm Length</span><span
+                                        class="mono-value" id="mini_arm_length">-- cm</span></div>
+                                <div class="data-row"><span data-i18n="anthro_leg">Leg Length</span><span
+                                        class="mono-value" id="mini_leg_length">-- cm</span></div>
+                                <div class="data-row"><span data-i18n="anthro_torso">Torso Length</span><span
+                                        class="mono-value" id="mini_torso_length">-- cm</span></div>
+                            </div>
+                            <div class="status-badge pending" id="anthroStatus" data-i18n="hc_await">Awaiting Scan</div>
+                            <div style="margin-top: 20px;"><button id="btnMeasureStart" class="primary-btn"
+                                    style="width: 100%; justify-content: center;"><i class="fa-solid fa-play"></i><span
+                                        id="btnMeasureText" data-i18n="hc_measure_start">측정
+                                        시작</span></button></div>
+                        </div>
+                    </div>
+                    <!-- Final Result Report (Initially hidden) -->
+                    <div id="reportContainer" class="report-container hidden" style="position: relative;">
+                        <div class="report-section anthro-ai-summary-card">
+                            <div class="section-title"><i class="fa-solid fa-sparkles"></i> <span>AI 분석 결과</span></div>
+                            <div id="aiSummaryStatus" class="anthro-ai-summary-status">
+                                <i class="fa-solid fa-wave-square"></i>
+                                <span>분석 대기중</span>
+                            </div>
+                            <div id="aiSummaryLoading" class="anthro-ai-summary-loading hidden">
+                                <i class="fa-solid fa-spinner fa-spin"></i>
+                                <span>측정 결과를 분석중입니다...</span>
+                            </div>
+                            <div id="anthroAiSummaryContent" class="anthro-ai-summary-content">AI 분석 결과를 준비중입니다.</div>
+                        </div>
+
+                        <!-- AI Overview Card -->
+                        <div class="report-section ai-overview-card hidden" id="aiOverviewCard">
+                            <div class="section-title"><i class="fa-solid fa-chart-line"></i> <span>종합 평가</span></div>
+                            <div id="aiOverviewContent"></div>
+                        </div>
+
+                        <!-- Posture Analysis Card -->
+                        <div class="report-section ai-posture-analysis-card hidden" id="aiPostureAnalysisCard">
+                            <div class="section-title"><i class="fa-solid fa-magnifying-glass-chart"></i> <span>자세 분석</span></div>
+                            <div id="aiPostureAnalysisContent"></div>
+                        </div>
+
+                        <!-- Problem Points Card -->
+                        <div class="report-section ai-problem-points-card hidden" id="aiProblemPointsCard">
+                            <div class="section-title"><i class="fa-solid fa-triangle-exclamation"></i> <span>문제 포인트 진단</span></div>
+                            <div id="aiProblemPointsContent"></div>
+                        </div>
+
+                        <!-- Personalized Recommendations Card -->
+                        <div class="report-section ai-recommendations-card hidden" id="aiRecommendationsCard">
+                            <div class="section-title"><i class="fa-solid fa-wand-magic-sparkles"></i> <span>맞춤 개선 가이드</span></div>
+                            <div id="aiRecommendationsContent"></div>
+                        </div>
+
+                        <!-- Progress Tracking Card -->
+                        <div class="report-section ai-progress-card hidden" id="aiProgressCard">
+                            <div class="section-title"><i class="fa-solid fa-clock-rotate-left"></i> <span>변화 추적</span></div>
+                            <div id="aiProgressContent"></div>
+                        </div>
+
+                        <!-- Lifestyle Guidance Card -->
+                        <div class="report-section lifestyle-guidance-card hidden" id="lifestyleGuidanceCard">
+                            <div class="section-title"><i class="fa-solid fa-leaf"></i> <span>맞춤 생활 가이드</span></div>
+                            <div id="lifestyleGuidanceContent"></div>
+                        </div>
+
+                        <div class="report-section">
+                            <div class="section-title"><i class="fa-solid fa-ruler-combined"></i> <span>주요 체형 측정값</span>
+                            </div>
+                            <div id="anthroMetricCards" class="anthro-metric-grid"></div>
+                        </div>
+
+                        <!-- 2. Front View Section -->
+                        <div class="report-section">
+                            <div class="section-title"><i class="fa-solid fa-person"></i> <span
+                                    data-i18n="hist_front_view">정면 분석</span> & <span
+                                    data-i18n="anthro_meas_report">Measurement Report</span></div>
+                            <div class="visual-analysis-row">
+                                <div class="visual-img-container">
+                                    <img id="frontReportImage" alt="Front Capture">
+                                </div>
+                                <div class="visual-metrics-container" id="frontMetricsList">
+                                    <!-- Dynamic Front Metrics -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 3. Side View Section -->
+                        <div class="report-section">
+                            <div class="section-title"><i class="fa-solid fa-person-walking-arrow-right"></i> <span
+                                    data-i18n="hist_side_view">측면 분석</span> & <span
+                                    data-i18n="anthro_meas_report">Measurement Report</span></div>
+                            <div class="visual-analysis-row">
+                                <div class="visual-img-container">
+                                    <img id="sideReportImage" alt="Side Capture">
+                                </div>
+                                <div class="visual-metrics-container" id="sideMetricsList">
+                                    <!-- Dynamic Side Metrics -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 4. Posture Analysis Integration -->
+                        <div class="report-section">
+                            <div class="section-title"><i class="fa-solid fa-magnifying-glass-chart"></i> <span
+                                    data-i18n="anthro_posture_summary">자세 분석 Summary</span></div>
+                            <div class="posture-grid" id="postureGrid">
+                                <!-- Cards will be injected via JS -->
+                            </div>
+                        </div>
+                    </div> <!-- reportContainer -->
+
+                    <!-- 5. Body Model Section (Always Visible) -->
+                    <div class="report-section" style="margin-top: 20px;">
+                        <div class="section-title"><i class="fa-solid fa-cube"></i> <span>Body Model</span></div>
+                        <div style="display:grid; grid-template-columns: 1fr 280px; gap:20px; align-items:stretch;">
+                            <!-- Left: 2x2 Multi-View Grid -->
+                            <div class="multi-view-grid">
+                                <div class="multi-view-cell" id="viewCell_front">
+                                    <div class="view-label">Front</div>
+                                    <img id="snapshotImg_front" class="multi-view-image" alt="Front snapshot">
+                                    <div id="snapshotStatus_front" class="snapshot-status loading">
+                                        <div class="snapshot-status-primary">Front view waiting...</div>
+                                        <div class="snapshot-status-secondary">모델 로딩 대기 중</div>
+                                    </div>
+                                    <canvas id="canvas_front" class="multi-view-canvas"></canvas>
+                                </div>
+                                <div class="multi-view-cell" id="viewCell_right">
+                                    <div class="view-label">Right</div>
+                                    <img id="snapshotImg_right" class="multi-view-image" alt="Right snapshot">
+                                    <div id="snapshotStatus_right" class="snapshot-status loading">
+                                        <div class="snapshot-status-primary">Right view waiting...</div>
+                                        <div class="snapshot-status-secondary">모델 로딩 대기 중</div>
+                                    </div>
+                                    <canvas id="canvas_right" class="multi-view-canvas"></canvas>
+                                </div>
+                                <div class="multi-view-cell" id="viewCell_back">
+                                    <div class="view-label">Back</div>
+                                    <img id="snapshotImg_back" class="multi-view-image" alt="Back snapshot">
+                                    <div id="snapshotStatus_back" class="snapshot-status loading">
+                                        <div class="snapshot-status-primary">Back view waiting...</div>
+                                        <div class="snapshot-status-secondary">모델 로딩 대기 중</div>
+                                    </div>
+                                    <canvas id="canvas_back" class="multi-view-canvas"></canvas>
+                                </div>
+                                <div class="multi-view-cell" id="viewCell_left">
+                                    <div class="view-label">Left</div>
+                                    <img id="snapshotImg_left" class="multi-view-image" alt="Left snapshot">
+                                    <div id="snapshotStatus_left" class="snapshot-status loading">
+                                        <div class="snapshot-status-primary">Left view waiting...</div>
+                                        <div class="snapshot-status-secondary">모델 로딩 대기 중</div>
+                                    </div>
+                                    <canvas id="canvas_left" class="multi-view-canvas"></canvas>
+                                </div>
+                            </div>
+                            <!-- Right: Meta + Controls + Legend -->
+                            <div id="bodyModelMeta"
+                                style="background: rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:16px; color:#e2e8f0; font-size:13px; line-height:1.7;">
+                                <div id="bodyModelInfo">No body model loaded.</div>
+                                <div style="margin-top:16px; display:flex; gap:10px;">
+                                    <select id="glbFileSelect"
+                                        style="flex:1; background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.15); border-radius:8px; padding:10px 14px; color:white; font-size:13px; cursor:pointer;">
+                                        <option value="">-- GLB 파일 선택 --</option>
+                                    </select>
+                                    <button id="btnLoadGLB"
+                                        style="background:var(--intel-blue); color:white; border:none; border-radius:8px; padding:10px 20px; font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap;">
+                                        <i class="fa-solid fa-upload"></i> GLB 로드
+                                    </button>
+                                </div>
+                                <div style="margin-top:12px; display:flex; gap:15px; align-items:center;">
+                                    <label style="color:white; font-size:13px; cursor:pointer;"><input type="radio"
+                                            name="glbViewMode" value="original" id="radioGlbOriginal"> 원본 보여주기</label>
+                                    <label style="color:white; font-size:13px; cursor:pointer;"><input type="radio"
+                                            name="glbViewMode" value="measured" id="radioGlbMeasured" checked> 측정값
+                                        적용</label>
+                                </div>
+                                <!-- Skeleton Legend -->
+                                <div class="skeleton-legend">
+                                    <div class="legend-title">Skeleton Legend</div>
+                                    <div class="legend-item">
+                                        <span class="legend-swatch legend-base"></span>
+                                        Base / Reference
+                                    </div>
+                                    <div class="legend-item">
+                                        <span class="legend-swatch legend-measured"></span>
+                                        Measured
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 6. Customized Correction Guide (Always Visible) -->
+                    <div class="report-section recommendations">
+                        <div class="section-title"><i class="fa-solid fa-wand-magic-sparkles"></i> <span
+                                data-i18n="rp_rec_routine">추천 교정 가이드</span></div>
+                        <div class="rec-grid" style="display: grid; grid-template-columns: 1fr; gap: 20px;">
+                            <div class="rec-card"
+                                style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 20px;">
+                                <div class="rec-header"
+                                    style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px; color: var(--intel-cyan); font-weight: 700; font-size: 16px;">
+                                    <i class="fa-solid fa-person-walking"></i>
+                                    <span data-i18n="rp_rec_routine">추천 교정 운동</span>
+                                </div>
+                                <div class="rec-thumbnails" id="exerciseThumbs"
+                                    style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
+                                    <!-- Exercise thumbnails -->
+                                </div>
+                            </div>
+                            <div class="rec-card"
+                                style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 20px;">
+                                <div class="rec-header"
+                                    style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px; color: #fbbf24; font-weight: 700; font-size: 16px;">
+                                    <i class="fa-solid fa-lightbulb"></i>
+                                    <span data-i18n="anthro_tip_title">생활 건강 팁</span>
+                                </div>
+                                <ul class="rec-list" id="lifestyleTips"
+                                    style="list-style: none; padding: 0; display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+                                    <!-- Lifestyle tips -->
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+            </div> <!-- tab-anthro -->
+        </div> <!-- diagnostics-panel -->
+        </div> <!-- check-grid -->
+    </main>
+    <script src="/settings.js"></script>
+    <script src="/ui/user-context.js"></script>
+    <script src="/ui/sidebar.js" defer></script>
+    <script src="/ui/models/three.min.js"></script>
+    <script src="/ui/models/GLTFLoader_legacy.js"></script>
+    <script src="/ui/lib/api.js"></script>
+    <script src="/ui/anthropometry.js?v=20260401_snapshotfix"></script>
+</body>
+
+</html>

@@ -1,0 +1,244 @@
+/* Customizations specific to the Prescription Page */
+
+.primaryBtnSlim {
+    padding: 10px 20px;
+    font-size: 14px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 113, 197, 0.3);
+}
+
+/* Tab Filters */
+.filterTabs {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 32px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--glass-border);
+    overflow-x: auto;
+    scrollbar-width: none;
+    /* Firefox */
+}
+
+.filterTabs::-webkit-scrollbar {
+    display: none;
+}
+
+/* Chrome */
+
+.filterTab {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    color: var(--text-secondary);
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all var(--transition-fast);
+}
+
+.filterTab:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.filterTabActive {
+    background: rgba(0, 199, 253, 0.1);
+    color: var(--intel-cyan);
+    border-color: var(--intel-cyan);
+    box-shadow: 0 0 15px rgba(0, 199, 253, 0.2);
+}
+
+/* Prescription Grid Layout */
+.prescriptionGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 24px;
+    padding-bottom: 40px;
+}
+
+/* Prescription Cards */
+.rxCard {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--border-radius);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+    transition: all var(--transition-medium);
+    animation: fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Stagger animations automatically */
+.rxCard:nth-child(1) { animation-delay: 0.05s; }
+.rxCard:nth-child(2) { animation-delay: 0.1s; }
+.rxCard:nth-child(3) { animation-delay: 0.15s; }
+.rxCard:nth-child(4) { animation-delay: 0.2s; }
+.rxCard:nth-child(5) { animation-delay: 0.25s; }
+.rxCard:nth-child(6) { animation-delay: 0.3s; }
+
+.rxCard:hover {
+    transform: translateY(-6px);
+    border-color: rgba(0, 199, 253, 0.4);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+.rxCard::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: transparent;
+    transition: background var(--transition-medium);
+}
+
+.rxCard:hover::before {
+    background: linear-gradient(90deg, transparent, var(--intel-cyan), transparent);
+}
+
+/* Highlighted top recommendation */
+.rxCardHighlight {
+    border-color: rgba(0, 199, 253, 0.3);
+    box-shadow: 0 0 20px rgba(0, 199, 253, 0.1);
+}
+
+.highlightBanner {
+    position: absolute;
+    top: 16px;
+    right: -30px;
+    background: var(--intel-blue);
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 4px 30px;
+    transform: rotate(45deg);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+/* Card Content Structure */
+.rxType {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+}
+
+.rxTypeDiet { color: var(--accent-positive); }
+.rxTypeExercise { color: var(--intel-cyan); }
+.rxTypeSupplements { color: #A855F7; }
+.rxTypeHabits { color: var(--accent-warning); }
+
+.rxHeader {
+    margin-bottom: 12px;
+}
+
+.rxHeader h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    line-height: 1.3;
+}
+
+.rxConfidence {
+    display: inline-block;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    color: var(--intel-cyan);
+    background: rgba(0, 199, 253, 0.1);
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.rxBody {
+    flex-grow: 1;
+    margin-bottom: 24px;
+}
+
+.rxBody p {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin-bottom: 16px;
+}
+
+.rxFeatures {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.tag {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    color: #cbd5e1;
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 12px;
+}
+
+/* Card Footer Actions */
+.rxFooter {
+    display: flex;
+    gap: 12px;
+    margin-top: auto;
+}
+
+.actionBtn {
+    flex: 1;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    transition: all var(--transition-fast);
+}
+
+.actionBtnSecondary {
+    background: transparent;
+    border: 1px solid var(--glass-border-light);
+    color: var(--text-primary);
+}
+
+.actionBtnSecondary:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.actionBtnPrimary {
+    background: linear-gradient(135deg, var(--intel-blue), var(--intel-dark-blue));
+    border: none;
+    color: white;
+    position: relative;
+    overflow: hidden;
+}
+
+.actionBtnPrimary:hover {
+    box-shadow: 0 4px 15px rgba(0, 113, 197, 0.4);
+    transform: translateY(-1px);
+}
+
+.actionBtnPrimaryAdded {
+    background: linear-gradient(135deg, var(--accent-positive), #047857);
+    pointer-events: none;
+}
+
+.hidden {
+    display: none;
+}
