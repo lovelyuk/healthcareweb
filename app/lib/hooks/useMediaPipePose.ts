@@ -1,6 +1,14 @@
 import { useState, useRef, useEffect } from 'react';
 import { PoseLandmarker, FilesetResolver } from '@mediapipe/tasks-vision';
 
+export interface Landmark {
+  x: number;
+  y: number;
+  z: number;
+  visibility: number;
+  index: number;
+}
+
 export const POSE_CONNECTIONS = [
   [0, 1], [1, 2], [2, 3], [3, 7],
   [0, 4], [4, 5], [5, 6], [6, 8],
@@ -21,7 +29,7 @@ interface UseMediaPipePoseArgs {
 
 export function useMediaPipePose({ videoRef, isActive, onLog }: UseMediaPipePoseArgs) {
   const [isReady, setIsReady] = useState(false);
-  const landmarksRef = useRef<any[]>([]);
+  const landmarksRef = useRef<Landmark[]>([]);
   const landmarkerRef = useRef<PoseLandmarker | null>(null);
   const reqRef = useRef<number | null>(null);
   const lastVideoTimeRef = useRef(-1);
