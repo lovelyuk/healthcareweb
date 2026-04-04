@@ -17,6 +17,8 @@ export interface PostureAnalysis {
   [key: string]: AnalysisResult;
 }
 
+export type MergedAnalysis = PostureAnalysis;
+
 function float(v: any): number {
   return Number(v) || 0;
 }

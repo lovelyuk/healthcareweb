@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { computeAnalysisFromLandmarks, computePostureScore } from '../analysis';
+import { computeAnalysisFromLandmarks, computePostureScore, MergedAnalysis } from '../analysis';
 
 export type FlowStep = 'idle' | 'wait_ready' | 'prepare' | 'front_hold' | 'turn' | 'side_hold' | 'analyzing' | 'result';
 
