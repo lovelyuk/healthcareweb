@@ -9,7 +9,7 @@ import {
   computeAnalysisFromLandmarks, 
   computePostureScore,
   type PostureAnalysis 
-} from '../lib/postureAnalysis';
+} from '../lib/analysis';
 import styles from './health-check.module.css';
 
 interface CaptureResult {
