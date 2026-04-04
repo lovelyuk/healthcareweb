@@ -8,8 +8,8 @@ import { useMediaPipePose, POSE_CONNECTIONS, Landmark } from '../lib/hooks/useMe
 import { 
   computeAnalysisFromLandmarks, 
   computePostureScore,
-  PostureAnalysis 
-} from '../lib/analysis';
+  type PostureAnalysis 
+} from '../lib/postureAnalysis';
 import styles from './health-check.module.css';
 
 interface CaptureResult {
